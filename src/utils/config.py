@@ -37,8 +37,8 @@ LEAKAGE_COLS = [
     "total_rec_late_fee", "recoveries", "collection_recovery_fee",
     "last_pymnt_d", "last_pymnt_amnt", "next_pymnt_d",
     "out_prncp", "out_prncp_inv",
-    # Lending Club's own grades (avoid label leakage / tautology)
-    "grade", "sub_grade",
+    # Lending Club's own grades and derived rate (label proxy)
+    "grade", "sub_grade", "int_rate",
     # Post-issuance credit pulls
     "last_credit_pull_d", "last_fico_range_high", "last_fico_range_low",
     # ID / URL / free text
@@ -67,7 +67,6 @@ NUMERIC_FEATURES = [
     "revol_bal", "revol_util", "total_acc",
     "mort_acc", "pub_rec_bankruptcies",
     "credit_history_years",  # engineered
-    "int_rate",  # keep as a *feature* (it reflects market pricing of risk at app)
 ]
 CATEGORICAL_FEATURES = [
     "term", "home_ownership", "verification_status",

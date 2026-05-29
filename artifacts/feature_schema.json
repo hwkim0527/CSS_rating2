@@ -13,8 +13,7 @@
     "total_acc",
     "mort_acc",
     "pub_rec_bankruptcies",
-    "credit_history_years",
-    "int_rate"
+    "credit_history_years"
   ],
   "categorical_features": [
     "term",

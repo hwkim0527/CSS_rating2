@@ -12,7 +12,6 @@ class ScoreRequest(BaseModel):
     # === Loan request ===
     loan_amnt: float = Field(..., ge=500, le=100_000, description="대출 신청 금액 (USD)")
     installment: float = Field(..., ge=0, description="월 상환금 (USD)")
-    int_rate: float = Field(..., ge=0, le=40, description="이자율 (%)")
     term: Literal["36 months", "60 months"] = Field(..., description="상환 기간")
     purpose: str = Field(..., description="대출 목적")
 

@@ -3,7 +3,7 @@ const resultBox = document.getElementById("result");
 const resetBtn = document.getElementById("reset-btn");
 
 const numericFields = new Set([
-  "loan_amnt", "installment", "int_rate", "annual_inc",
+  "loan_amnt", "installment", "annual_inc",
   "dti", "delinq_2yrs", "inq_last_6mths", "open_acc", "pub_rec",
   "revol_bal", "revol_util", "total_acc", "mort_acc",
   "pub_rec_bankruptcies", "credit_history_years",

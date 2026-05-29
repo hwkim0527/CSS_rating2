@@ -12,7 +12,7 @@ from src.web.scoring import (
 client = TestClient(app)
 
 SAMPLE_GOOD = {
-    "loan_amnt": 8000, "installment": 250, "int_rate": 8.5, "term": "36 months",
+    "loan_amnt": 8000, "installment": 250, "term": "36 months",
     "purpose": "credit_card", "annual_inc": 120000, "emp_length": "10",
     "home_ownership": "MORTGAGE", "verification_status": "Verified", "addr_state": "CA",
     "dti": 12.0, "delinq_2yrs": 0, "inq_last_6mths": 0, "open_acc": 10, "pub_rec": 0,
@@ -24,7 +24,7 @@ SAMPLE_GOOD = {
 SAMPLE_BAD = {
     **SAMPLE_GOOD,
     "annual_inc": 28000, "dti": 45.0, "delinq_2yrs": 4, "inq_last_6mths": 6,
-    "pub_rec": 2, "revol_util": 95, "pub_rec_bankruptcies": 1, "int_rate": 28.0,
+    "pub_rec": 2, "revol_util": 95, "pub_rec_bankruptcies": 1,
     "credit_history_years": 3.0,
 }
 

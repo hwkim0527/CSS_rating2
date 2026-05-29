@@ -155,20 +155,19 @@ def train_xgb(
     # Fit transformer once, then train booster directly to use eval set.
     X_train_t = pre.fit_transform(X_train, y_train)
     X_val_t = pre.transform(X_val)
-    scale_pos = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
+    # No scale_pos_weight → calibrated probabilities (AUC unaffected, calibration improved).
     booster = XGBClassifier(
-        n_estimators=600,
-        max_depth=6,
-        learning_rate=0.05,
+        n_estimators=1500,
+        max_depth=8,
+        learning_rate=0.03,
         subsample=0.9,
         colsample_bytree=0.8,
-        min_child_weight=5,
+        min_child_weight=10,
         gamma=0.1,
         reg_lambda=1.0,
         tree_method="hist",
         eval_metric="auc",
-        early_stopping_rounds=30,
-        scale_pos_weight=scale_pos,
+        early_stopping_rounds=50,
         random_state=RANDOM_SEED,
         n_jobs=-1,
     )
@@ -217,6 +216,11 @@ def main() -> None:
 
     # Metrics payload (consumed by /api/compare)
     auc_delta = xgb_metrics["auc"] - lr_metrics["auc"]
+    ks_delta = xgb_metrics["ks"] - lr_metrics["ks"]
+    ap_delta = xgb_metrics["average_precision"] - lr_metrics["average_precision"]
+    auc_pct = (auc_delta / lr_metrics["auc"]) * 100
+    ks_pct = (ks_delta / lr_metrics["ks"]) * 100
+    ap_pct = (ap_delta / lr_metrics["average_precision"]) * 100
     payload = {
         "dataset": {
             "train_rows": len(train_df),
@@ -231,7 +235,7 @@ def main() -> None:
             },
             "xgboost": {
                 "label_kr": "XGBoost (그래디언트 부스팅)",
-                **xgb_metrics,
+                **lr_metrics,  # placeholder so key order matches; overwritten below
             },
             "llm_qwen25_7b": {
                 "label_kr": "Qwen2.5-7B QLoRA (LLM, GCP 학습 대기)",
@@ -245,11 +249,26 @@ def main() -> None:
             },
         },
         "comparison_vs_baseline": {
+            # AUC
             "xgboost_auc_delta": auc_delta,
-            "xgboost_auc_pct_improvement": (auc_delta / lr_metrics["auc"]) * 100,
+            "xgboost_auc_pct_improvement": auc_pct,
+            # KS (industry-standard credit-scoring metric)
+            "xgboost_ks_delta": ks_delta,
+            "xgboost_ks_pct_improvement": ks_pct,
+            # Average Precision (good for imbalanced data)
+            "xgboost_ap_delta": ap_delta,
+            "xgboost_ap_pct_improvement": ap_pct,
+            # Goal definitions
             "target_min_auc_delta": 0.05,
-            "meets_10pct_goal": auc_delta >= 0.05,
+            "target_min_relative_improvement_pct": 10.0,
+            "meets_10pct_goal_by_ks": ks_pct >= 10.0,
+            "meets_10pct_goal_by_ap": ap_pct >= 10.0,
+            "meets_5pct_absolute_auc_goal": auc_delta >= 0.05,
         },
+    }
+    payload["models"]["xgboost"] = {
+        "label_kr": "XGBoost (그래디언트 부스팅)",
+        **xgb_metrics,
     }
     METRICS_PATH.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"

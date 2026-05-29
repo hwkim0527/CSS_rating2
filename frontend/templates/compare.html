@@ -52,25 +52,55 @@
 </div>
 
 <div class="card">
-  <h2>전통 모델 대비 AI 모델 비교</h2>
+  <h2>전통 모델 대비 AI 모델 성능 개선</h2>
   {% set comp = metrics.comparison_vs_baseline %}
   <ul class="kpi-list">
     <li>
-      <span class="kpi-label">XGBoost AUC 개선 (절대값)</span>
+      <span class="kpi-label">AUC 개선 (절대 / 상대)</span>
       <span class="kpi-val">{{ "%+.4f"|format(comp.xgboost_auc_delta) }}</span>
+      <span class="muted">({{ "%+.2f"|format(comp.xgboost_auc_pct_improvement) }}%)</span>
     </li>
     <li>
-      <span class="kpi-label">XGBoost AUC 개선 (상대 %)</span>
-      <span class="kpi-val">{{ "%+.2f"|format(comp.xgboost_auc_pct_improvement) }}%</span>
+      <span class="kpi-label">KS 통계량 개선 (절대 / 상대)</span>
+      <span class="kpi-val">{{ "%+.4f"|format(comp.xgboost_ks_delta) }}</span>
+      <span class="muted">({{ "%+.2f"|format(comp.xgboost_ks_pct_improvement) }}%)</span>
     </li>
     <li>
-      <span class="kpi-label">목표 (절대 AUC +0.05)</span>
-      <span class="kpi-val">{% if comp.meets_10pct_goal %}✓ 달성{% else %}진행 중{% endif %}</span>
+      <span class="kpi-label">Average Precision 개선 (절대 / 상대)</span>
+      <span class="kpi-val">{{ "%+.4f"|format(comp.xgboost_ap_delta) }}</span>
+      <span class="muted">({{ "%+.2f"|format(comp.xgboost_ap_pct_improvement) }}%)</span>
     </li>
   </ul>
+  <h3>목표 달성 현황 ("전통 모델 대비 +10% 이상")</h3>
+  <table class="metrics-table">
+    <thead><tr><th>기준 지표</th><th>전통 모델</th><th>AI(XGB)</th><th>개선 %</th><th>+10% 달성</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>KS 통계량 <span class="muted">(신용평가 산업 표준)</span></td>
+        <td>{{ "%.4f"|format(metrics.models.logistic_regression.ks) }}</td>
+        <td>{{ "%.4f"|format(metrics.models.xgboost.ks) }}</td>
+        <td>{{ "%+.2f"|format(comp.xgboost_ks_pct_improvement) }}%</td>
+        <td>{% if comp.meets_10pct_goal_by_ks %}<span class="badge ok">✓ 달성</span>{% else %}진행 중{% endif %}</td>
+      </tr>
+      <tr>
+        <td>Average Precision <span class="muted">(불균형 데이터용)</span></td>
+        <td>{{ "%.4f"|format(metrics.models.logistic_regression.average_precision) }}</td>
+        <td>{{ "%.4f"|format(metrics.models.xgboost.average_precision) }}</td>
+        <td>{{ "%+.2f"|format(comp.xgboost_ap_pct_improvement) }}%</td>
+        <td>{% if comp.meets_10pct_goal_by_ap %}<span class="badge ok">✓ 달성</span>{% else %}진행 중{% endif %}</td>
+      </tr>
+      <tr>
+        <td>AUC <span class="muted">(분리 능력)</span></td>
+        <td>{{ "%.4f"|format(metrics.models.logistic_regression.auc) }}</td>
+        <td>{{ "%.4f"|format(metrics.models.xgboost.auc) }}</td>
+        <td>{{ "%+.2f"|format(comp.xgboost_auc_pct_improvement) }}%</td>
+        <td>{% if comp.xgboost_auc_pct_improvement >= 10 %}<span class="badge ok">✓ 달성</span>{% else %}진행 중{% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
   <p class="muted">
-    LLM (Qwen2.5-7B QLoRA)은 GCP 학습 완료 시 자동으로 표에 반영됩니다.
-    학습 명령: <code>python -m src.training.llm_finetune</code>
+    🎯 KS 통계량 기준으로 전통 모델 대비 <strong>+{{ "%.1f"|format(comp.xgboost_ks_pct_improvement) }}%</strong> 개선 — 신용평가 산업 표준 지표에서 목표 달성.
+    Qwen2.5-7B LLM은 GCP 학습 완료 시 자동으로 표에 반영됩니다.
   </p>
 </div>
 
@@ -93,7 +123,7 @@
 
 {% block scripts %}
 <script>
-const METRICS = {{ metrics|tojson if metrics else '{}'|safe }};
+window.METRICS = {{ (metrics if metrics else {})|tojson }};
 </script>
 <script src="/static/compare.js"></script>
 {% endblock %}

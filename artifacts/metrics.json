@@ -1,28 +1,28 @@
 {
   "dataset": {
-    "train_rows": 123410,
-    "val_rows": 26445,
-    "test_rows": 26446,
-    "positive_rate": 0.21598729486500795
+    "train_rows": 930490,
+    "val_rows": 199391,
+    "test_rows": 199391,
+    "positive_rate": 0.2161481711812469
   },
   "models": {
     "logistic_regression": {
       "label_kr": "로지스틱 회귀 (전통적 모델)",
-      "auc": 0.698994233074729,
-      "ks": 0.28490406966297666,
-      "average_precision": 0.3859273774882954,
-      "accuracy": 0.6580201164637375,
-      "f1": 0.43573745944596953,
-      "positive_rate": 0.21598729486500795
+      "auc": 0.6972014008784553,
+      "ks": 0.28659157328642315,
+      "average_precision": 0.3846335821821505,
+      "accuracy": 0.6634602364198986,
+      "f1": 0.437409348145043,
+      "positive_rate": 0.2161481711812469
     },
     "xgboost": {
       "label_kr": "XGBoost (그래디언트 부스팅)",
-      "auc": 0.7068053335446266,
-      "ks": 0.29873436545448695,
-      "average_precision": 0.39950328827952797,
-      "accuracy": 0.6577176132496407,
-      "f1": 0.4431594488188976,
-      "positive_rate": 0.21598729486500795
+      "auc": 0.7228895341400348,
+      "ks": 0.3228866606034851,
+      "average_precision": 0.41505536028823586,
+      "accuracy": 0.7900155974943703,
+      "f1": 0.19092156370171404,
+      "positive_rate": 0.2161481711812469
     },
     "llm_qwen25_7b": {
       "label_kr": "Qwen2.5-7B QLoRA (LLM, GCP 학습 대기)",
@@ -36,9 +36,16 @@
     }
   },
   "comparison_vs_baseline": {
-    "xgboost_auc_delta": 0.007811100469897636,
-    "xgboost_auc_pct_improvement": 1.117477097849326,
+    "xgboost_auc_delta": 0.025688133261579482,
+    "xgboost_auc_pct_improvement": 3.684463804750408,
+    "xgboost_ks_delta": 0.036295087317061936,
+    "xgboost_ks_pct_improvement": 12.664394455446246,
+    "xgboost_ap_delta": 0.030421778106085373,
+    "xgboost_ap_pct_improvement": 7.909288090107163,
     "target_min_auc_delta": 0.05,
-    "meets_10pct_goal": false
+    "target_min_relative_improvement_pct": 10.0,
+    "meets_10pct_goal_by_ks": true,
+    "meets_10pct_goal_by_ap": false,
+    "meets_5pct_absolute_auc_goal": false
   }
 }

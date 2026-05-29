@@ -66,13 +66,15 @@ def credit_score_from_prob(p: float) -> int:
 
 
 def risk_grade_from_prob(p: float) -> tuple[str, str]:
-    if p < 0.10:
+    # Thresholds calibrated to a ~21.6% base default rate (Lending Club test set).
+    # Below base rate = better than average; above = worse.
+    if p < 0.08:
         return "A", "최우량 (부실위험 매우 낮음)"
-    if p < 0.20:
+    if p < 0.15:
         return "B", "우량 (부실위험 낮음)"
-    if p < 0.35:
+    if p < 0.25:
         return "C", "보통 (평균 수준)"
-    if p < 0.55:
+    if p < 0.40:
         return "D", "주의 (부실위험 높음)"
     return "E", "고위험 (부실위험 매우 높음)"
 
