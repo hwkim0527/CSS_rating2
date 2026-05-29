@@ -32,17 +32,20 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="Qwen/Qwen2.5-7B-Instruct")
-    parser.add_argument("--train_file", default="data/llm/train.jsonl")
-    parser.add_argument("--val_file", default="data/llm/val.jsonl")
+    parser.add_argument("--train_file", default="data/llm_seed/train.jsonl")
+    parser.add_argument("--val_file", default="data/llm_seed/val.jsonl")
     parser.add_argument("--output_dir", default="artifacts/qwen25_lora")
-    parser.add_argument("--num_epochs", type=int, default=3)
-    parser.add_argument("--per_device_train_batch_size", type=int, default=4)
+    # Defaults are tuned for "efficient" mode (≈1.5–2h on T4 16GB, ~$0 on Colab free).
+    parser.add_argument("--num_epochs", type=int, default=1)
+    parser.add_argument("--per_device_train_batch_size", type=int, default=2)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
-    parser.add_argument("--lora_r", type=int, default=16)
-    parser.add_argument("--lora_alpha", type=int, default=32)
+    parser.add_argument("--lora_r", type=int, default=8)
+    parser.add_argument("--lora_alpha", type=int, default=16)
     parser.add_argument("--lora_dropout", type=float, default=0.05)
-    parser.add_argument("--max_seq_length", type=int, default=1024)
+    parser.add_argument("--max_seq_length", type=int, default=512)
+    parser.add_argument("--max_train_samples", type=int, default=None,
+                        help="Truncate training set to this many samples (for fast iteration).")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--dry_run",
@@ -96,6 +99,8 @@ def main() -> None:
         "json",
         data_files={"train": str(train_path), "validation": str(val_path)},
     )
+    if args.max_train_samples is not None and args.max_train_samples < len(ds["train"]):
+        ds["train"] = ds["train"].shuffle(seed=args.seed).select(range(args.max_train_samples))
     ds = ds.map(lambda ex: {"text": format_sample(ex)})
     log.info("Dataset sizes: train=%d val=%d", len(ds["train"]), len(ds["validation"]))
 

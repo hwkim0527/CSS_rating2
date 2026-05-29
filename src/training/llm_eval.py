@@ -21,9 +21,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--adapter_dir", default="artifacts/qwen25_lora")
-    parser.add_argument("--test_file", default="data/llm/test.jsonl")
+    parser.add_argument("--test_file", default="data/llm_seed/test.jsonl")
     parser.add_argument("--metrics_path", default="artifacts/metrics.json")
-    parser.add_argument("--max_samples", type=int, default=2000)
+    parser.add_argument("--max_samples", type=int, default=1000)
     args = parser.parse_args()
 
     try:

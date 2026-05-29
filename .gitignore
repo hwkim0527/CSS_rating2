@@ -21,6 +21,9 @@ data_source/
 *.csv
 *.xlsx
 !docs/*.xlsx
+# Exception: commit the small seed dataset for Colab/LLM training (10k+1k+1k, ~8MB)
+!data/llm_seed/
+!data/llm_seed/*.jsonl
 
 # LLM adapters are large (multi-GB) — never commit; trained on GCP
 artifacts/qwen25_lora/

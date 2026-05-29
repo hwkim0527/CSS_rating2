@@ -49,7 +49,6 @@ def row_to_prompt(row: dict) -> str:
 
     fields = [
         f"- 대출 신청 금액: ${_safe_float(row.get('loan_amnt')):,.0f}",
-        f"- 이자율: {_safe_float(row.get('int_rate')):.2f}%",
         f"- 상환 기간: {row.get('term', '')}",
         f"- 월 상환금: ${_safe_float(row.get('installment')):,.0f}",
         f"- 대출 목적: {purpose}",
