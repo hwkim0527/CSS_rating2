@@ -1,0 +1,30 @@
+{
+  "numeric_features": [
+    "loan_amnt",
+    "installment",
+    "annual_inc",
+    "dti",
+    "delinq_2yrs",
+    "inq_last_6mths",
+    "open_acc",
+    "pub_rec",
+    "revol_bal",
+    "revol_util",
+    "total_acc",
+    "mort_acc",
+    "pub_rec_bankruptcies",
+    "credit_history_years",
+    "int_rate"
+  ],
+  "categorical_features": [
+    "term",
+    "home_ownership",
+    "verification_status",
+    "purpose",
+    "addr_state",
+    "emp_length",
+    "application_type",
+    "initial_list_status"
+  ],
+  "target": "default"
+}

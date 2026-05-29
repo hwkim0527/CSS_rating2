@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CSS Rating 2 — AI 신용평가시스템{% endblock %}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">●</span>
+      <span>CSS Rating <strong>2</strong></span>
+    </div>
+    <nav>
+      <a href="/">신용평가</a>
+      <a href="/compare">모델 비교</a>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <small>본 시스템은 Lending Club 공개 데이터로 학습된 연구·교육용 데모입니다. 실제 신용 결정 용도가 아닙니다.</small>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

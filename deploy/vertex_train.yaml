@@ -1,0 +1,42 @@
+# Vertex AI Custom Training Job — Qwen2.5-7B QLoRA
+# 사용:
+#   gcloud ai custom-jobs create \
+#     --region=asia-northeast3 \
+#     --display-name=css-rating2-llm-train \
+#     --config=deploy/vertex_train.yaml
+workerPoolSpecs:
+  - machineSpec:
+      machineType: g2-standard-12        # L4 GPU (cost-efficient)
+      acceleratorType: NVIDIA_L4
+      acceleratorCount: 1
+    replicaCount: 1
+    diskSpec:
+      bootDiskType: pd-ssd
+      bootDiskSizeGb: 200
+    containerSpec:
+      imageUri: us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-3.py310:latest
+      command:
+        - bash
+        - "-lc"
+      args:
+        - |
+          set -eux
+          pip install -r src/training/requirements_llm.txt
+          python -m src.training.build_llm_dataset \
+              --train-samples 50000 --val-samples 5000 --test-samples 5000
+          python -m src.training.llm_finetune \
+              --model_name Qwen/Qwen2.5-7B-Instruct \
+              --output_dir /gcs/${BUCKET}/css-rating2/qwen25_lora \
+              --num_epochs 3 \
+              --per_device_train_batch_size 4 \
+              --gradient_accumulation_steps 4 \
+              --learning_rate 2e-4
+          python -m src.training.llm_eval \
+              --adapter_dir /gcs/${BUCKET}/css-rating2/qwen25_lora \
+              --test_file data/llm/test.jsonl \
+              --metrics_path /gcs/${BUCKET}/css-rating2/metrics.json
+      env:
+        - name: HF_TOKEN
+          value: "{{HF_TOKEN}}"   # gcloud ai custom-jobs create --substitutions HF_TOKEN=hf_xxx
+        - name: BUCKET
+          value: "{{GCS_BUCKET}}"

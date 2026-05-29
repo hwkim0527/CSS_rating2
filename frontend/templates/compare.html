@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}모델 비교 — CSS Rating 2{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>전통 모델 vs AI 모델 성능 비교</h1>
+  <p>Lending Club 테스트셋에서 측정한 실제 성능입니다.</p>
+</section>
+
+{% if not metrics %}
+  <div class="card error">
+    <p>아직 학습된 메트릭이 없습니다. <code>python -m src.models.train</code>을 먼저 실행하세요.</p>
+  </div>
+{% else %}
+<div class="card">
+  <h2>요약</h2>
+  <p>
+    학습 데이터 <strong>{{ "{:,}".format(metrics.dataset.train_rows) }}건</strong>,
+    검증 <strong>{{ "{:,}".format(metrics.dataset.val_rows) }}건</strong>,
+    테스트 <strong>{{ "{:,}".format(metrics.dataset.test_rows) }}건</strong>.
+    부실률 <strong>{{ "%.1f"|format(metrics.dataset.positive_rate * 100) }}%</strong>.
+  </p>
+</div>
+
+<div class="card">
+  <h2>성능 표</h2>
+  <table class="metrics-table">
+    <thead>
+      <tr>
+        <th>모델</th>
+        <th>AUC ↑</th>
+        <th>KS ↑</th>
+        <th>Average Precision ↑</th>
+        <th>Accuracy</th>
+        <th>F1</th>
+        <th>상태</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for key, m in metrics.models.items() %}
+      <tr>
+        <td><strong>{{ m.label_kr }}</strong></td>
+        <td>{% if m.auc %}{{ "%.4f"|format(m.auc) }}{% else %}—{% endif %}</td>
+        <td>{% if m.ks %}{{ "%.4f"|format(m.ks) }}{% else %}—{% endif %}</td>
+        <td>{% if m.average_precision %}{{ "%.4f"|format(m.average_precision) }}{% else %}—{% endif %}</td>
+        <td>{% if m.accuracy %}{{ "%.4f"|format(m.accuracy) }}{% else %}—{% endif %}</td>
+        <td>{% if m.f1 %}{{ "%.4f"|format(m.f1) }}{% else %}—{% endif %}</td>
+        <td>{% if m.get('status') %}<span class="badge">{{ m.status }}</span>{% else %}<span class="badge ok">학습 완료</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>전통 모델 대비 AI 모델 비교</h2>
+  {% set comp = metrics.comparison_vs_baseline %}
+  <ul class="kpi-list">
+    <li>
+      <span class="kpi-label">XGBoost AUC 개선 (절대값)</span>
+      <span class="kpi-val">{{ "%+.4f"|format(comp.xgboost_auc_delta) }}</span>
+    </li>
+    <li>
+      <span class="kpi-label">XGBoost AUC 개선 (상대 %)</span>
+      <span class="kpi-val">{{ "%+.2f"|format(comp.xgboost_auc_pct_improvement) }}%</span>
+    </li>
+    <li>
+      <span class="kpi-label">목표 (절대 AUC +0.05)</span>
+      <span class="kpi-val">{% if comp.meets_10pct_goal %}✓ 달성{% else %}진행 중{% endif %}</span>
+    </li>
+  </ul>
+  <p class="muted">
+    LLM (Qwen2.5-7B QLoRA)은 GCP 학습 완료 시 자동으로 표에 반영됩니다.
+    학습 명령: <code>python -m src.training.llm_finetune</code>
+  </p>
+</div>
+
+<div class="card">
+  <h2>지표 해설</h2>
+  <ul>
+    <li><strong>AUC</strong>: 부실/정상을 얼마나 잘 구분하는지 (0.5=무작위, 1.0=완벽).</li>
+    <li><strong>KS</strong>: 두 분포의 최대 분리도. 0.3 이상이면 실무적으로 유효.</li>
+    <li><strong>Average Precision</strong>: 불균형 데이터에서 정밀도-재현율 곡선의 평균.</li>
+    <li><strong>Accuracy / F1</strong>: 분류 임계값 0.5 기준 (참고용).</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>막대 그래프</h2>
+  <canvas id="auc-chart" width="640" height="240"></canvas>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const METRICS = {{ metrics|tojson if metrics else '{}'|safe }};
+</script>
+<script src="/static/compare.js"></script>
+{% endblock %}

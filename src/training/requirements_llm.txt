@@ -1,0 +1,11 @@
+# LLM 학습 환경 (GCP A100 / L4 권장)
+# 메인 requirements.txt 와 별도로 GPU 환경에서만 설치하세요.
+torch>=2.3.0
+transformers>=4.44.0
+accelerate>=0.34.0
+peft>=0.12.0
+trl>=0.10.0
+bitsandbytes>=0.43.0
+datasets>=2.20.0
+sentencepiece>=0.2.0
+einops>=0.8.0

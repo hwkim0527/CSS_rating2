@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.venv
+.git
+.gitignore
+data/processed/*
+data/llm/*
+notebooks
+docs
+tests
+.env
+*.log
+*.md
+!README.md

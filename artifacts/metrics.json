@@ -1,0 +1,44 @@
+{
+  "dataset": {
+    "train_rows": 123410,
+    "val_rows": 26445,
+    "test_rows": 26446,
+    "positive_rate": 0.21598729486500795
+  },
+  "models": {
+    "logistic_regression": {
+      "label_kr": "로지스틱 회귀 (전통적 모델)",
+      "auc": 0.698994233074729,
+      "ks": 0.28490406966297666,
+      "average_precision": 0.3859273774882954,
+      "accuracy": 0.6580201164637375,
+      "f1": 0.43573745944596953,
+      "positive_rate": 0.21598729486500795
+    },
+    "xgboost": {
+      "label_kr": "XGBoost (그래디언트 부스팅)",
+      "auc": 0.7068053335446266,
+      "ks": 0.29873436545448695,
+      "average_precision": 0.39950328827952797,
+      "accuracy": 0.6577176132496407,
+      "f1": 0.4431594488188976,
+      "positive_rate": 0.21598729486500795
+    },
+    "llm_qwen25_7b": {
+      "label_kr": "Qwen2.5-7B QLoRA (LLM, GCP 학습 대기)",
+      "status": "pending_training",
+      "auc": null,
+      "ks": null,
+      "average_precision": null,
+      "accuracy": null,
+      "f1": null,
+      "positive_rate": null
+    }
+  },
+  "comparison_vs_baseline": {
+    "xgboost_auc_delta": 0.007811100469897636,
+    "xgboost_auc_pct_improvement": 1.117477097849326,
+    "target_min_auc_delta": 0.05,
+    "meets_10pct_goal": false
+  }
+}

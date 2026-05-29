@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}신용평가 입력 — CSS Rating 2{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>AI 신용평가</h1>
+  <p>개인의 금융 정보를 입력하면 부실 가능성을 점수로 산출합니다.</p>
+</section>
+
+<form id="score-form" class="card">
+  <h2>신청자 정보</h2>
+
+  <div class="grid">
+    <label>대출 신청 금액 (USD)
+      <input type="number" name="loan_amnt" value="12000" min="500" max="100000" step="100" required />
+    </label>
+    <label>이자율 (%)
+      <input type="number" name="int_rate" value="13.5" min="0" max="40" step="0.01" required />
+    </label>
+    <label>월 상환금 (USD)
+      <input type="number" name="installment" value="406" min="0" step="0.01" required />
+    </label>
+    <label>상환 기간
+      <select name="term" required>
+        <option value="36 months">36개월</option>
+        <option value="60 months">60개월</option>
+      </select>
+    </label>
+    <label>대출 목적
+      <select name="purpose" required>
+        <option value="debt_consolidation">부채 통합</option>
+        <option value="credit_card">신용카드 대환</option>
+        <option value="home_improvement">주택 개량</option>
+        <option value="major_purchase">대형 구매</option>
+        <option value="small_business">사업 자금</option>
+        <option value="car">자동차</option>
+        <option value="medical">의료</option>
+        <option value="vacation">여행</option>
+        <option value="moving">이사</option>
+        <option value="other">기타</option>
+      </select>
+    </label>
+    <label>거주 주 (US 2자리)
+      <input type="text" name="addr_state" value="CA" maxlength="2" required />
+    </label>
+  </div>
+
+  <h2>소득 / 고용</h2>
+  <div class="grid">
+    <label>연소득 (USD)
+      <input type="number" name="annual_inc" value="65000" min="0" step="100" required />
+    </label>
+    <label>근속 연수 (0~10)
+      <input type="text" name="emp_length" value="5" required />
+    </label>
+    <label>주거 형태
+      <select name="home_ownership" required>
+        <option value="RENT">임대</option>
+        <option value="MORTGAGE">모기지</option>
+        <option value="OWN">자가</option>
+        <option value="OTHER">기타</option>
+      </select>
+    </label>
+    <label>소득 검증 상태
+      <select name="verification_status" required>
+        <option value="Not Verified">미검증</option>
+        <option value="Verified">검증완료</option>
+        <option value="Source Verified">원천 검증</option>
+      </select>
+    </label>
+  </div>
+
+  <h2>신용 이력</h2>
+  <div class="grid">
+    <label>DTI (부채/소득 %)
+      <input type="number" name="dti" value="18.5" min="0" max="100" step="0.1" required />
+    </label>
+    <label>최근 2년 연체 건수
+      <input type="number" name="delinq_2yrs" value="0" min="0" required />
+    </label>
+    <label>최근 6개월 신용조회
+      <input type="number" name="inq_last_6mths" value="0" min="0" required />
+    </label>
+    <label>현재 보유 신용계좌 수
+      <input type="number" name="open_acc" value="9" min="0" required />
+    </label>
+    <label>공적 기록 건수
+      <input type="number" name="pub_rec" value="0" min="0" required />
+    </label>
+    <label>회전신용 잔액 (USD)
+      <input type="number" name="revol_bal" value="9500" min="0" step="100" required />
+    </label>
+    <label>회전신용 활용률 (%)
+      <input type="number" name="revol_util" value="42" min="0" max="200" step="0.1" required />
+    </label>
+    <label>누적 신용계좌 수
+      <input type="number" name="total_acc" value="22" min="0" required />
+    </label>
+    <label>모기지 계좌 수
+      <input type="number" name="mort_acc" value="1" min="0" required />
+    </label>
+    <label>파산 기록
+      <input type="number" name="pub_rec_bankruptcies" value="0" min="0" required />
+    </label>
+    <label>신용 이력 (년)
+      <input type="number" name="credit_history_years" value="12.5" min="0" max="80" step="0.1" required />
+    </label>
+    <label>신청 유형
+      <select name="application_type">
+        <option value="Individual">개인</option>
+        <option value="Joint App">공동</option>
+      </select>
+    </label>
+    <label>초기 분류
+      <select name="initial_list_status">
+        <option value="w">w</option>
+        <option value="f">f</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="primary">신용점수 산출하기</button>
+    <button type="button" class="secondary" id="reset-btn">초기화</button>
+  </div>
+</form>
+
+<section id="result" class="result hidden">
+  <h2>평가 결과</h2>
+  <div class="result-grid">
+    <div class="score-card">
+      <div class="label">신용점수</div>
+      <div class="big" id="r-score">—</div>
+      <div class="grade" id="r-grade">—</div>
+    </div>
+    <div class="prob-card">
+      <div class="label">부실 확률</div>
+      <div class="big" id="r-prob">—</div>
+      <div class="muted">12개월 내 채무불이행 추정</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">사용 모델</div>
+      <div id="r-model">—</div>
+      <div class="muted" id="r-grade-kr">—</div>
+    </div>
+  </div>
+  <h3>주요 영향 요인</h3>
+  <ul id="r-factors"></ul>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/score.js"></script>
+{% endblock %}

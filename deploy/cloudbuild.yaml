@@ -1,0 +1,45 @@
+# Cloud Build → Artifact Registry → Cloud Run 배포
+# 사용: gcloud builds submit --config deploy/cloudbuild.yaml --substitutions _REGION=asia-northeast3
+substitutions:
+  _SERVICE: css-rating2
+  _REGION: asia-northeast3
+  _REPOSITORY: css-rating2
+  _IMAGE: gcr.io/$PROJECT_ID/css-rating2
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - "-t"
+      - "${_IMAGE}:${SHORT_SHA}"
+      - "-t"
+      - "${_IMAGE}:latest"
+      - "."
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "${_IMAGE}:${SHORT_SHA}"]
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "${_IMAGE}:latest"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - "--image=${_IMAGE}:${SHORT_SHA}"
+      - "--region=${_REGION}"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--memory=1Gi"
+      - "--cpu=1"
+      - "--port=8080"
+      - "--max-instances=10"
+      - "--min-instances=0"
+      - "--concurrency=80"
+      - "--timeout=60s"
+
+images:
+  - "${_IMAGE}:${SHORT_SHA}"
+  - "${_IMAGE}:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
