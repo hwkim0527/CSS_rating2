@@ -1,10 +1,31 @@
 # CSS Rating 2 — AI 신용평가시스템
 
+[![CI](https://github.com/hwkim0527/CSS_rating2/actions/workflows/ci.yml/badge.svg)](https://github.com/hwkim0527/CSS_rating2/actions/workflows/ci.yml)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/hwkim0527/CSS_rating2)
+
 개인의 금융 정보를 입력하면 **12개월 내 채무불이행(부실) 확률**을 산출하는 웹앱입니다.
 Lending Club 공개 데이터(2.26M건)로 학습된 XGBoost를 즉시 사용할 수 있고,
 **Qwen2.5-7B sLLM** QLoRA 파인튜닝 파이프라인을 GCP에서 실행할 수 있습니다.
 
 > 본 시스템은 연구·교육 목적의 데모입니다. 실제 신용 결정 용도가 아닙니다.
+
+## 🚀 라이브 배포
+
+| 플랫폼 | URL | 비고 |
+|---|---|---|
+| Render | [Deploy ▶](https://render.com/deploy?repo=https://github.com/hwkim0527/CSS_rating2) | 무료, 무카드, 한 번 클릭 |
+| HuggingFace Spaces | [docs/HF_SPACES](./deploy/HF_SPACES_README.md) | CPU basic 무료 |
+| Google Cloud Run | `bash deploy/deploy.sh` | 항상 켜짐, 비용 발생 |
+| 로컬 Docker | `docker build -t css-rating2 . && docker run -p 8080:8080 css-rating2` | 검증용 |
+
+### 모델 학습 결과 (실제 측정값)
+| 지표 | 전통 모델 (LR) | AI 모델 (XGBoost) | 개선 |
+|---|---|---|---|
+| **KS** *(신용평가 산업 표준)* | 0.2866 | **0.3229** | **+12.66% ✓** |
+| Average Precision | 0.3846 | 0.4151 | +7.91% |
+| AUC | 0.6972 | 0.7229 | +3.68% |
+
+→ `/compare` 페이지에서 실시간 비교 표·그래프 확인
 
 ---
 

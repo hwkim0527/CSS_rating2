@@ -1,0 +1,17 @@
+# Render.com Blueprint — 원클릭 배포 (무료 티어)
+# 사용: https://render.com/deploy?repo=https://github.com/hwkim0527/CSS_rating2
+services:
+  - type: web
+    name: css-rating2
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: PYTHONUNBUFFERED
+        value: "1"
