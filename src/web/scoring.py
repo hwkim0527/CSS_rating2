@@ -163,15 +163,28 @@ def explain_top_factors(payload: dict, prob: float) -> list[dict]:
 
 
 def score_one(payload: dict, model_key: str = "xgboost") -> dict:
-    model = load_baseline() if model_key == "logistic" else load_model()
-    df = to_dataframe(payload)
-    prob = float(model.predict_proba(df)[0, 1])
+    if model_key == "llm":
+        from src.web.llm_scoring import llm_available, score_with_llm
+        if not llm_available():
+            raise RuntimeError(
+                "LLM 어댑터가 없거나 CSS_ENABLE_LLM=1이 설정되지 않았습니다. "
+                "artifacts/qwen3_lora/에 어댑터를 두거나 CSS_LLM_DRIVE_FOLDER_ID 로 "
+                "Google Drive 다운로드를 설정하세요."
+            )
+        prob = score_with_llm(payload)
+        model_name = "Qwen3-14B QLoRA"
+    elif model_key == "logistic":
+        prob = float(load_baseline().predict_proba(to_dataframe(payload))[0, 1])
+        model_name = "Logistic Regression"
+    else:  # xgboost (default)
+        prob = float(load_model().predict_proba(to_dataframe(payload))[0, 1])
+        model_name = "XGBoost"
     grade, grade_kr = risk_grade_from_prob(prob)
     return {
         "default_probability": prob,
         "credit_score": credit_score_from_prob(prob),
         "risk_grade": grade,
         "risk_grade_kr": grade_kr,
-        "model_name": "XGBoost" if model_key == "xgboost" else "Logistic Regression",
+        "model_name": model_name,
         "top_factors": explain_top_factors(payload, prob),
     }

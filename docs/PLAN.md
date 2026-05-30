@@ -49,7 +49,7 @@ data/processed/{train,val,test}.parquet
         ├─────────────────────────┐
         ▼                         ▼
 [src/models/baseline.py]   [src/training/llm_finetune.py]
-  XGBoost + Logistic        Qwen2.5-7B + QLoRA
+  XGBoost + Logistic        Qwen3-14B + QLoRA
   로컬 학습 가능              GCP A100/L4 필요
         │                         │
         ▼                         ▼
@@ -70,12 +70,12 @@ data/processed/{train,val,test}.parquet
 
 | 모델 | Params | 라이선스 | 추천 사유 |
 |---|---|---|---|
-| **Qwen2.5-7B** | 7B | Apache 2.0 | 한국어/영어 균형, 수치 추론 우수 |
+| **Qwen3-14B** | 7B | Apache 2.0 | 한국어/영어 균형, 수치 추론 우수 |
 | Llama-3.1-8B | 8B | Llama Community | 영어 강함, 생태계 풍부 |
 | Mistral-7B-v0.3 | 7B | Apache 2.0 | 빠른 추론 |
 | Gemma-2-9B | 9B | Gemma | 구글 백본, GCP 친화적 |
 
-**1차 선택: Qwen2.5-7B-Instruct** (한국어 사용자 입력 대응 + 무제한 상업 라이선스)
+**1차 선택: Qwen3-14B** (한국어 사용자 입력 대응 + 무제한 상업 라이선스)
 
 ### 학습 전략
 - **QLoRA** (4-bit quantization + LoRA rank=16)
@@ -133,7 +133,7 @@ deploy/service.yaml    — Cloud Run 서비스 정의
 |---|---|---|---|---|---|
 | 로지스틱 회귀 (전통) | 0.70 | 0.30 | 0.81 | 0.55 | 기준 |
 | XGBoost | 0.73 | 0.35 | 0.82 | 0.58 | +4.3% AUC |
-| LLM (Qwen2.5-7B) | TBD | TBD | TBD | TBD | 목표 +7% |
+| LLM (Qwen3-14B) | TBD | TBD | TBD | TBD | 목표 +7% |
 
 (실제 수치는 학습 후 자동 갱신)
 

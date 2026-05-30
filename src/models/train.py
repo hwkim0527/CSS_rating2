@@ -237,8 +237,8 @@ def main() -> None:
                 "label_kr": "XGBoost (그래디언트 부스팅)",
                 **lr_metrics,  # placeholder so key order matches; overwritten below
             },
-            "llm_qwen25_7b": {
-                "label_kr": "Qwen2.5-7B QLoRA (LLM, GCP 학습 대기)",
+            "llm_qwen3_14b": {
+                "label_kr": "Qwen3-14B QLoRA (LLM, 학습 대기)",
                 "status": "pending_training",
                 "auc": None,
                 "ks": None,

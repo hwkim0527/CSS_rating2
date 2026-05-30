@@ -1,4 +1,4 @@
-# Vertex AI Custom Training Job — Qwen2.5-7B QLoRA
+# Vertex AI Custom Training Job — Qwen3-14B QLoRA
 # 사용:
 #   gcloud ai custom-jobs create \
 #     --region=asia-northeast3 \
@@ -25,14 +25,16 @@ workerPoolSpecs:
           python -m src.training.build_llm_dataset \
               --train-samples 50000 --val-samples 5000 --test-samples 5000
           python -m src.training.llm_finetune \
-              --model_name Qwen/Qwen2.5-7B-Instruct \
-              --output_dir /gcs/${BUCKET}/css-rating2/qwen25_lora \
+              --model_name Qwen/Qwen3-14B \
+              --output_dir /gcs/${BUCKET}/css-rating2/qwen3_lora \
               --num_epochs 3 \
-              --per_device_train_batch_size 4 \
-              --gradient_accumulation_steps 4 \
-              --learning_rate 2e-4
+              --per_device_train_batch_size 2 \
+              --gradient_accumulation_steps 8 \
+              --learning_rate 2e-4 \
+              --resume_from_checkpoint auto
           python -m src.training.llm_eval \
-              --adapter_dir /gcs/${BUCKET}/css-rating2/qwen25_lora \
+              --model_name Qwen/Qwen3-14B \
+              --adapter_dir /gcs/${BUCKET}/css-rating2/qwen3_lora \
               --test_file data/llm/test.jsonl \
               --metrics_path /gcs/${BUCKET}/css-rating2/metrics.json
       env:

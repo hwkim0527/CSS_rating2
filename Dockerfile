@@ -19,10 +19,13 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY src ./src
 COPY frontend ./frontend
 COPY artifacts ./artifacts
+COPY deploy/entrypoint.sh ./deploy/entrypoint.sh
+RUN chmod +x ./deploy/entrypoint.sh
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s \
     CMD python -c "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz').status==200 else 1)"
 
-CMD ["sh", "-c", "uvicorn src.web.app:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# 엔트리포인트: LLM 이 켜져 있으면 Drive 어댑터를 먼저 받고 서버 기동.
+CMD ["sh", "./deploy/entrypoint.sh"]

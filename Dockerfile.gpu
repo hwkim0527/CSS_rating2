@@ -1,0 +1,39 @@
+# Cloud Run GPU (NVIDIA L4) / GCE GPU 용 이미지.
+# Qwen3-14B QLoRA(4bit) 추론에는 CUDA 가 필수이므로 CUDA 런타임 베이스를 쓴다.
+# CPU 전용 배포는 루트의 Dockerfile 을 사용하세요.
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8080 \
+    DEBIAN_FRONTEND=noninteractive \
+    HF_HOME=/app/.hf_cache
+
+WORKDIR /app
+
+# Python + xgboost 런타임 의존(libgomp1)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3-pip python3.11-venv libgomp1 \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# 1) 웹/표 모델 의존 (gdown, google-auth 포함)
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# 2) LLM 추론 의존 (GPU). transformers>=4.51 (Qwen3), bitsandbytes(4bit) 등.
+COPY src/training/requirements_llm.txt ./requirements_llm.txt
+RUN pip install -r requirements_llm.txt
+
+# Source + trained artifacts
+COPY src ./src
+COPY frontend ./frontend
+COPY artifacts ./artifacts
+COPY deploy/entrypoint.sh ./deploy/entrypoint.sh
+RUN chmod +x ./deploy/entrypoint.sh
+
+EXPOSE 8080
+
+# 시작 시 Drive 어댑터를 받고(LLM 켜진 경우) 서버 기동.
+CMD ["sh", "./deploy/entrypoint.sh"]

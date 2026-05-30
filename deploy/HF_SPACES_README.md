@@ -7,7 +7,7 @@ sdk: docker
 app_port: 8080
 pinned: false
 license: mit
-short_description: AI 신용평가시스템 — XGBoost + Qwen2.5-7B QLoRA + FastAPI
+short_description: AI 신용평가시스템 — XGBoost + Qwen3-14B QLoRA + FastAPI
 ---
 
 # CSS Rating 2 — HuggingFace Spaces 배포

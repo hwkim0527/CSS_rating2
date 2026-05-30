@@ -24,8 +24,8 @@
       "f1": 0.19092156370171404,
       "positive_rate": 0.2161481711812469
     },
-    "llm_qwen25_7b": {
-      "label_kr": "Qwen2.5-7B QLoRA (LLM, GCP 학습 대기)",
+    "llm_qwen3_14b": {
+      "label_kr": "Qwen3-14B QLoRA (LLM, 학습 대기)",
       "status": "pending_training",
       "auc": null,
       "ks": null,

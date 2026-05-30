@@ -10,3 +10,8 @@ xgboost==2.1.1
 joblib==1.4.2
 pyarrow==17.0.0
 matplotlib==3.9.2
+# 배포 시 Google Drive에서 학습된 LoRA 어댑터를 내려받기 위한 도구
+gdown==5.2.0
+# 서비스 계정/ADC 로 Drive API 접근 (Cloud Run GPU 비공개 다운로드)
+google-api-python-client==2.149.0
+google-auth==2.35.0

@@ -15,3 +15,14 @@ services:
         value: "8080"
       - key: PYTHONUNBUFFERED
         value: "1"
+      # === Qwen3-14B LLM 채점 (선택) ===
+      # ⚠️ Render free 티어는 CPU 라 LLM(4bit)을 실행할 수 없습니다.
+      #    아래 ENABLE 은 0(꺼짐)으로 두어 XGBoost 로만 동작합니다.
+      #    GPU 호스트로 옮길 때 CSS_ENABLE_LLM 을 "1" 로 바꾸면, 기동 시
+      #    아래 폴더(hwkim0527 Drive 의 Qwen3_fintech)에서 어댑터를 받습니다.
+      - key: CSS_ENABLE_LLM
+        value: "0"
+      - key: CSS_LLM_BASE
+        value: "Qwen/Qwen3-14B"
+      - key: CSS_LLM_DRIVE_FOLDER_ID
+        value: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"
