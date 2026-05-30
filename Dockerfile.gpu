@@ -56,7 +56,9 @@ COPY src ./src
 COPY frontend ./frontend
 COPY artifacts ./artifacts
 COPY deploy/entrypoint.sh ./deploy/entrypoint.sh
-RUN chmod +x ./deploy/entrypoint.sh
+# CRLF → LF 강제 (Windows 체크아웃 대비) 후 실행권한. dash 의 "set: Illegal
+# option -" 를 근본 차단한다.
+RUN sed -i 's/\r$//' ./deploy/entrypoint.sh && chmod +x ./deploy/entrypoint.sh
 
 EXPOSE 8080
 

@@ -1,0 +1,9 @@
+# 셸 스크립트와 Dockerfile, 엔트리포인트는 항상 LF 줄바꿈.
+# (Windows 에서 CRLF 로 체크아웃되면 컨테이너의 dash 가 "set: Illegal option -" 로 죽음)
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+deploy/entrypoint.sh text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
