@@ -31,7 +31,7 @@ gh repo create hwkim0527/CSS_rating2 \
   --private \
   --source=. \
   --remote=origin \
-  --description "AI 신용평가시스템 — XGBoost + Qwen2.5-7B QLoRA + FastAPI" \
+  --description "AI 신용평가시스템 — XGBoost + Qwen3-14B QLoRA + FastAPI" \
   --push
 ```
 

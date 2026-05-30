@@ -15,19 +15,28 @@ xgboost:
   early_stopping_rounds: 30
 
 llm:
-  base_model: Qwen/Qwen2.5-7B-Instruct
-  lora_r: 16
-  lora_alpha: 32
+  # Qwen2.5-7B → Qwen3-14B 업그레이드 (동급 대비 약 1.5세대 성능 향상).
+  # transformers>=4.51.0 필요.
+  base_model: Qwen/Qwen3-14B
+  adapter_dir: artifacts/qwen3_lora
+  lora_r: 8
+  lora_alpha: 16
   lora_dropout: 0.05
-  per_device_train_batch_size: 4
-  gradient_accumulation_steps: 4
-  effective_batch: 16
+  # T4(16GB) 안전값. L4/A100 에서는 노트북이 batch 2~4 로 상향.
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  effective_batch: 8
   learning_rate: 2.0e-4
-  num_epochs: 3
-  max_seq_length: 1024
+  num_epochs: 1
+  max_seq_length: 512
   quantization: nf4
-  compute_dtype: bfloat16
+  compute_dtype: bfloat16   # T4 는 코드에서 fp16 으로 자동 폴백
   target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  # 체크포인트 (output_dir 가 Drive 면 Drive 에 누적, 끊겨도 auto 재개)
+  save_steps: 50
+  save_total_limit: 2
+  # 학습 완료 후 최종 어댑터 저장 위치 (Colab → Google Drive)
+  drive_output_dir: "/content/drive/MyDrive/Colab Notebooks/Qwen3_fintech"
 
 success_criteria:
   metric: roc_auc

@@ -1,10 +1,10 @@
 """학습된 LoRA 어댑터로 테스트셋 AUC/KS 계산 → artifacts/metrics.json 갱신.
 
-GCP에서 실행:
+Colab/GPU에서 실행 (어댑터는 Drive 의 Qwen3_fintech 폴더):
     python -m src.training.llm_eval \
-        --model_name Qwen/Qwen2.5-7B-Instruct \
-        --adapter_dir artifacts/qwen25_lora \
-        --test_file data/llm/test.jsonl
+        --model_name Qwen/Qwen3-14B \
+        --adapter_dir "/content/drive/MyDrive/Colab Notebooks/Qwen3_fintech" \
+        --test_file data/llm_seed/test.jsonl
 """
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", default="Qwen/Qwen2.5-7B-Instruct")
-    parser.add_argument("--adapter_dir", default="artifacts/qwen25_lora")
+    parser.add_argument("--model_name", default="Qwen/Qwen3-14B")
+    parser.add_argument("--adapter_dir", default="artifacts/qwen3_lora")
     parser.add_argument("--test_file", default="data/llm_seed/test.jsonl")
     parser.add_argument("--metrics_path", default="artifacts/metrics.json")
     parser.add_argument("--max_samples", type=int, default=1000)
@@ -48,8 +48,9 @@ def main() -> None:
         bnb_4bit_compute_dtype="bfloat16",
     )
     tok = AutoTokenizer.from_pretrained(args.model_name, trust_remote_code=True)
+    device_index = torch.cuda.current_device() if torch.cuda.is_available() else 0
     base = AutoModelForCausalLM.from_pretrained(
-        args.model_name, quantization_config=bnb, device_map="auto", trust_remote_code=True
+        args.model_name, quantization_config=bnb, device_map={"": device_index}, trust_remote_code=True
     )
     model = PeftModel.from_pretrained(base, args.adapter_dir)
     model.eval()
@@ -58,6 +59,11 @@ def main() -> None:
     POS_TOK = tok.encode("부실", add_special_tokens=False)[0]
     NEG_TOK = tok.encode("정상", add_special_tokens=False)[0]
     log.info("POS token id=%s, NEG token id=%s", POS_TOK, NEG_TOK)
+    if POS_TOK == NEG_TOK:
+        raise RuntimeError(
+            f"'부실'/'정상' 의 첫 토큰이 동일합니다 (id={POS_TOK}). "
+            f"이 토크나이저({args.model_name})에서는 단일 토큰 분류가 불가능합니다."
+        )
 
     examples = [json.loads(line) for line in open(args.test_file, encoding="utf-8")]
     if args.max_samples and args.max_samples < len(examples):
@@ -100,21 +106,30 @@ def main() -> None:
     }
     log.info("LLM metrics: %s", metrics)
 
-    # Merge into metrics.json
     mp = Path(args.metrics_path)
-    payload = json.loads(mp.read_text(encoding="utf-8"))
-    payload["models"]["llm_qwen25_7b"] = {
-        "label_kr": "Qwen2.5-7B QLoRA (LLM)",
+    mp.parent.mkdir(parents=True, exist_ok=True)
+    llm_block = {
+        "label_kr": "Qwen3-14B QLoRA (LLM)",
         "status": "trained",
         **metrics,
     }
-    base_auc = payload["models"]["logistic_regression"]["auc"]
-    delta = auc - base_auc
-    payload["comparison_vs_baseline"]["llm_auc_delta"] = delta
-    payload["comparison_vs_baseline"]["llm_auc_pct_improvement"] = (delta / base_auc) * 100
-    payload["comparison_vs_baseline"]["llm_meets_10pct_goal"] = delta >= 0.05
-    mp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    log.info("Updated %s", mp)
+    if mp.exists():
+        payload = json.loads(mp.read_text(encoding="utf-8"))
+        payload.setdefault("models", {})["llm_qwen3_14b"] = llm_block
+        base_auc = payload.get("models", {}).get("logistic_regression", {}).get("auc")
+        if base_auc:
+            delta = auc - base_auc
+            payload.setdefault("comparison_vs_baseline", {})
+            payload["comparison_vs_baseline"]["llm_auc_delta"] = delta
+            payload["comparison_vs_baseline"]["llm_auc_pct_improvement"] = (delta / base_auc) * 100
+            payload["comparison_vs_baseline"]["llm_meets_10pct_goal"] = delta >= 0.05
+        mp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        log.info("Updated %s (merged into existing)", mp)
+    else:
+        # Standalone — save just the LLM metrics for later local merge.
+        payload = {"models": {"llm_qwen3_14b": llm_block}}
+        mp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        log.info("Wrote standalone LLM metrics: %s", mp)
 
 
 if __name__ == "__main__":

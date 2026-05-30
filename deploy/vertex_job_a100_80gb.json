@@ -1,0 +1,23 @@
+{
+  "workerPoolSpecs": [
+    {
+      "machineSpec": {
+        "machineType": "a2-ultragpu-1g",
+        "acceleratorType": "NVIDIA_A100_80GB",
+        "acceleratorCount": 1
+      },
+      "replicaCount": "1",
+      "diskSpec": {
+        "bootDiskType": "pd-ssd",
+        "bootDiskSizeGb": 200
+      },
+      "containerSpec": {
+        "imageUri": "us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-3.py310:latest",
+        "command": ["bash", "-c"],
+        "args": [
+          "set -e; gsutil cp gs://css-rating2-training-wsd2605/css-rating2/bootstrap.sh /tmp/bootstrap.sh && chmod +x /tmp/bootstrap.sh && BUCKET=css-rating2-training-wsd2605 PROJECT_BASE=css-rating2 bash /tmp/bootstrap.sh"
+        ]
+      }
+    }
+  ]
+}

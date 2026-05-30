@@ -68,6 +68,26 @@ def api_score_baseline(req: ScoreRequest) -> ScoreResponse:
     return ScoreResponse(**result)
 
 
+@app.post("/api/score_llm", response_model=ScoreResponse)
+def api_score_llm(req: ScoreRequest) -> ScoreResponse:
+    try:
+        result = score_one(req.model_dump(), model_key="llm")
+    except (FileNotFoundError, RuntimeError) as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    return ScoreResponse(**result)
+
+
+@app.get("/api/llm_status")
+def api_llm_status() -> dict:
+    from src.web.llm_scoring import ADAPTER_DIR, LLM_ENABLED, llm_available
+    return {
+        "enabled_flag": LLM_ENABLED,
+        "adapter_path": str(ADAPTER_DIR),
+        "adapter_present": ADAPTER_DIR.exists() and any(ADAPTER_DIR.iterdir()) if ADAPTER_DIR.exists() else False,
+        "available_for_inference": llm_available(),
+    }
+
+
 @app.get("/api/compare", response_model=CompareResponse)
 def api_compare() -> JSONResponse:
     metrics = load_metrics()
