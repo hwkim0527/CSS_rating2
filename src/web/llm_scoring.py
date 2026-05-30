@@ -15,6 +15,11 @@
 
   (B) 수동 배치 — 어댑터 폴더를 직접 artifacts/qwen3_lora 에 복사 후
           export CSS_ENABLE_LLM=1
+
+베이스 모델(Qwen3-14B, ~28GB)도 Drive 에서 받기 (HF Hub 429 우회):
+    export CSS_LLM_BASE_DRIVE_FOLDER_ID=<Qwen3_base 폴더 ID>
+  설정 시 HF 대신 Drive 에서 받아 artifacts/qwen3_base 로 캐시하고 그 로컬
+  경로로 로드한다. 미설정 시 BASE_MODEL(HF repo id)을 그대로 사용한다.
 """
 from __future__ import annotations
 
@@ -34,6 +39,10 @@ BASE_MODEL = os.environ.get("CSS_LLM_BASE", "Qwen/Qwen3-14B")
 LLM_ENABLED = os.environ.get("CSS_ENABLE_LLM", "0") == "1"
 # Drive 자동 다운로드 트리거 (설정되면 어댑터가 없을 때 내려받음).
 DRIVE_FOLDER_ID = os.environ.get("CSS_LLM_DRIVE_FOLDER_ID", "")
+# 베이스 모델(Qwen3-14B)도 Drive 에서 받을 폴더 ID. 설정되면 HF Hub 대신 Drive
+# 에서 받아 로컬 경로로 로드한다(GCP IP 대역의 HF 429 완전 우회).
+BASE_DRIVE_FOLDER_ID = os.environ.get("CSS_LLM_BASE_DRIVE_FOLDER_ID", "")
+BASE_DIR = Path(os.environ.get("CSS_LLM_BASE_DIR", str(ARTIFACTS_DIR / "qwen3_base")))
 
 
 def _adapter_present() -> bool:
@@ -56,6 +65,24 @@ def ensure_adapter() -> bool:
     return _adapter_present()
 
 
+def resolve_base_model() -> str:
+    """베이스 모델 경로/이름을 돌려준다.
+
+    CSS_LLM_BASE_DRIVE_FOLDER_ID 가 설정돼 있으면 Drive 에서 베이스 모델을 받아
+    그 로컬 경로를 반환한다(HF 우회). 아니면 BASE_MODEL(HF repo id)을 그대로 반환.
+    """
+    if not BASE_DRIVE_FOLDER_ID:
+        return BASE_MODEL
+    if (BASE_DIR / "config.json").exists():
+        log.info("베이스 모델 로컬 캐시 사용: %s", BASE_DIR)
+        return str(BASE_DIR)
+    log.info("베이스 모델을 Google Drive 에서 다운로드합니다: folder_id=%s", BASE_DRIVE_FOLDER_ID)
+    from src.web.download_model import download_base_from_drive
+
+    download_base_from_drive(BASE_DIR)
+    return str(BASE_DIR)
+
+
 def llm_available() -> bool:
     """저렴한 확인 — 플래그가 켜져 있고, 어댑터가 있거나 Drive 에서 받을 수 있을 때 True."""
     if not LLM_ENABLED:
@@ -76,15 +103,16 @@ def _load_llm():
             "CSS_LLM_DRIVE_FOLDER_ID 를 설정해 Drive 에서 받거나, 어댑터를 직접 배치하세요."
         )
 
-    log.info("Loading LLM: base=%s adapter=%s", BASE_MODEL, ADAPTER_DIR)
+    base_ref = resolve_base_model()
+    log.info("Loading LLM: base=%s adapter=%s", base_ref, ADAPTER_DIR)
     bnb = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.float16,
     )
-    tok = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
+    tok = AutoTokenizer.from_pretrained(base_ref, trust_remote_code=True)
     base = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL,
+        base_ref,
         quantization_config=bnb,
         device_map={"": 0},
         trust_remote_code=True,
