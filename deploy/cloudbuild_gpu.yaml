@@ -3,17 +3,26 @@
 # 선행 1회 설정 (deploy/setup_service_account.sh 참고):
 #   - Drive API 활성화
 #   - 런타임 서비스 계정 생성, Qwen3_fintech 폴더를 그 SA 이메일과 공유(뷰어)
+#   (Qwen3-14B 는 공개 모델이라 HF 토큰 불필요. 베이스 모델은 첫 추론 시
+#    HF Hub 에서 받아 인스턴스 캐시에 보관됨 — min-instances=1 이라 1회만.)
 #
 # 사용:
 #   gcloud builds submit --config deploy/cloudbuild_gpu.yaml \
-#     --substitutions _REGION=us-central1,_RUNTIME_SA=css-rating2-run@$PROJECT_ID.iam.gserviceaccount.com,_DRIVE_FOLDER_ID=1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY
+#     --substitutions _REGION=us-central1,_RUNTIME_SA=css-rating2-run@$PROJECT_ID.iam.gserviceaccount.com
 #
-# ⚠️ Cloud Run GPU(L4)는 일부 리전만 지원: us-central1, europe-west1,
-#    asia-southeast1 등. asia-northeast3(서울)은 미지원이라 기본을 us-central1 로 둠.
+# 참고:
+#   - 이미지 이름의 $PROJECT_ID 는 빌드 시점 자동 치환 내장 변수(직접 사용).
+#   - 인라인 bash 셸 변수는 $$ 로 이스케이프(Cloud Build 치환과 충돌 방지).
+#   - L4 GPU 드라이버는 CUDA 12.2 → Dockerfile.gpu 는 cu121 torch 사용.
+#   - 메모리 32Gi/8CPU: 14B 4bit 로딩 시 RAM 피크 대비.
+#   - min-instances=1: 데모용. 콜드스타트(이미지 pull+모델 로드) 회피. GPU 상시 과금.
+#   - HF_HUB_DISABLE_XET=1: HF xet 프로토콜이 GCP IP대역에서 429 유발 → 비활성 필수.
+#   - 데모 종료 시 과금 중단: gcloud run services delete css-rating2-gpu --region=us-central1
+#     또는 --min-instances=0 으로 변경(미사용시 0으로 축소, 단 콜드스타트 수분).
+#   - Cloud Run GPU(L4)는 us-central1 등 일부 리전만 지원(서울 미지원).
 substitutions:
   _SERVICE: css-rating2-gpu
   _REGION: us-central1
-  _IMAGE: gcr.io/$PROJECT_ID/css-rating2-gpu
   _RUNTIME_SA: ""        # 비우면 프로젝트 기본 compute SA 사용(권장: 전용 SA 지정)
   _DRIVE_FOLDER_ID: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"
 
@@ -24,14 +33,10 @@ steps:
       - "-f"
       - "Dockerfile.gpu"
       - "-t"
-      - "${_IMAGE}:${SHORT_SHA}"
-      - "-t"
-      - "${_IMAGE}:latest"
+      - "gcr.io/$PROJECT_ID/css-rating2-gpu:latest"
       - "."
   - name: gcr.io/cloud-builders/docker
-    args: ["push", "${_IMAGE}:${SHORT_SHA}"]
-  - name: gcr.io/cloud-builders/docker
-    args: ["push", "${_IMAGE}:latest"]
+    args: ["push", "gcr.io/$PROJECT_ID/css-rating2-gpu:latest"]
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: bash
     args:
@@ -41,27 +46,26 @@ steps:
         SA_FLAG=""
         if [ -n "${_RUNTIME_SA}" ]; then SA_FLAG="--service-account=${_RUNTIME_SA}"; fi
         gcloud run deploy ${_SERVICE} \
-          --image=${_IMAGE}:${SHORT_SHA} \
+          --image=gcr.io/$PROJECT_ID/css-rating2-gpu:latest \
           --region=${_REGION} \
           --platform=managed \
           --allow-unauthenticated \
           --gpu=1 \
           --gpu-type=nvidia-l4 \
           --no-gpu-zonal-redundancy \
-          --cpu=4 \
-          --memory=16Gi \
+          --cpu=8 \
+          --memory=32Gi \
           --port=8080 \
           --max-instances=1 \
-          --min-instances=0 \
+          --min-instances=1 \
           --concurrency=4 \
           --timeout=600s \
           --no-cpu-throttling \
-          $SA_FLAG \
-          --set-env-vars=CSS_ENABLE_LLM=1,CSS_LLM_BASE=Qwen/Qwen3-14B,CSS_LLM_DRIVE_FOLDER_ID=${_DRIVE_FOLDER_ID},CSS_LLM_GDRIVE_USE_ADC=1,HF_HOME=/app/.hf_cache
+          $$SA_FLAG \
+          --set-env-vars=CSS_ENABLE_LLM=1,CSS_LLM_BASE=Qwen/Qwen3-14B,CSS_LLM_DRIVE_FOLDER_ID=${_DRIVE_FOLDER_ID},CSS_LLM_GDRIVE_USE_ADC=1,HF_HOME=/app/.hf_cache,HF_HUB_ENABLE_HF_TRANSFER=0,HF_HUB_DISABLE_XET=1,HF_HUB_DOWNLOAD_TIMEOUT=60
 
 images:
-  - "${_IMAGE}:${SHORT_SHA}"
-  - "${_IMAGE}:latest"
+  - "gcr.io/$PROJECT_ID/css-rating2-gpu:latest"
 
 options:
   logging: CLOUD_LOGGING_ONLY
