@@ -1,7 +1,10 @@
 # LLM 학습 환경 (GCP A100 / L4 권장)
 # 메인 requirements.txt 와 별도로 GPU 환경에서만 설치하세요.
-torch>=2.3.0
-transformers>=4.44.0
+# ⚠️ torch 는 Dockerfile.gpu 에서 cu121 휠(2.5.1)로 먼저 설치됨 — 여기서 재설치
+#    되지 않도록 동일 하한만 명시. (Colab 학습 시엔 환경 기본 torch 사용)
+torch>=2.5.0
+# transformers 4.55+ ↔ torch 2.5 조합 (Qwen3 지원은 4.51+). 상한으로 호환 고정.
+transformers>=4.51.0,<4.58.0
 accelerate>=0.34.0
 peft>=0.12.0
 trl>=0.10.0
