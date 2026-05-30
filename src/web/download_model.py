@@ -1,28 +1,25 @@
-"""학습된 Qwen3-14B LoRA 어댑터를 Google Drive 에서 내려받는다.
+"""학습된 Qwen3-14B LoRA 어댑터(및 선택적으로 베이스 모델)를 Google Drive 에서
+내려받는다.
 
-배포되는 신용평가 시스템이 hwkim0527 의 Google Drive
-"Colab Notebooks/Qwen3_fintech" 폴더에 저장된 어댑터를 사용할 수 있게 한다.
+배포되는 신용평가 시스템이 hwkim0527 의 Google Drive 폴더에 저장된 모델을
+사용할 수 있게 한다. GCP Cloud Run IP 대역은 HuggingFace Hub 에서 429(Too Many
+Requests)를 자주 받으므로, 베이스 모델(Qwen3-14B, ~28GB)도 HF 가 아니라 Drive
+에서 받는 경로를 지원한다(HF 완전 우회).
 
-두 가지 방식을 환경변수로 전환:
+두 가지 인증 방식(환경변수로 전환):
+  1) gdown — 폴더를 "링크가 있는 모든 사용자" 로 공유 (간편, 보안 약함)
+  2) 서비스 계정 / ADC — 폴더를 SA 이메일과 공유 (비공개·권장)
+     CSS_LLM_GDRIVE_SA_JSON(키파일) 또는 CSS_LLM_GDRIVE_USE_ADC=1(런타임 SA)
 
-  1) gdown (간편) — 폴더를 "링크가 있는 모든 사용자" 로 공유한 뒤:
-         export CSS_LLM_DRIVE_FOLDER_ID=<폴더 ID>
-     ⚠️ 링크를 아는 누구나 모델을 받을 수 있으므로, 금융 모델에는 권장하지 않음.
-
-  2) 서비스 계정 (비공개·권장) — 폴더를 서비스 계정 이메일과 공유한 뒤:
-         export CSS_LLM_DRIVE_FOLDER_ID=<폴더 ID>
-         export CSS_LLM_GDRIVE_SA_JSON=/secrets/sa.json
-     (추가 설치: pip install google-api-python-client google-auth)
-
-CLI (배포 시작 시 미리 받기):
-    python -m src.web.download_model            # artifacts/qwen3_lora 로 받음
-    python -m src.web.download_model --target /models/qwen3_lora
-
-폴더 ID 는 Drive 폴더 URL 의 .../folders/<여기> 부분이다.
+CLI:
+    python -m src.web.download_model                         # 어댑터
+    python -m src.web.download_model --target /m/qwen3_lora  # 경로 지정
+    python -m src.web.download_model --base                  # 베이스 모델
 """
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import os
 import shutil
@@ -30,22 +27,23 @@ from pathlib import Path
 
 log = logging.getLogger("download_model")
 
-# 어댑터로 인정하기 위해 반드시 있어야 하는 파일
-REQUIRED_FILE = "adapter_config.json"
+# 폴더 종류별 "이게 있으면 다운로드 완료" 로 인정하는 대표 파일
+ADAPTER_REQUIRED_FILE = "adapter_config.json"
+BASE_REQUIRED_FILE = "config.json"
 
 
-def _flatten_into(target: Path) -> None:
-    """gdown 이 하위 폴더로 받았을 경우, adapter_config.json 이 있는 폴더의
-    내용을 target 바로 아래로 끌어올린다."""
-    if (target / REQUIRED_FILE).exists():
+def _flatten_into(target: Path, required_file: str) -> None:
+    """gdown 이 하위 폴더로 받았을 경우, required_file 이 있는 폴더의 내용을
+    target 바로 아래로 끌어올린다."""
+    if (target / required_file).exists():
         return
-    matches = list(target.rglob(REQUIRED_FILE))
+    matches = list(target.rglob(required_file))
     if not matches:
         return
     src_dir = matches[0].parent
     if src_dir == target:
         return
-    log.info("어댑터 파일을 %s → %s 로 평탄화합니다", src_dir, target)
+    log.info("파일을 %s → %s 로 평탄화합니다", src_dir, target)
     for item in src_dir.iterdir():
         dest = target / item.name
         if dest.exists():
@@ -53,8 +51,8 @@ def _flatten_into(target: Path) -> None:
         shutil.move(str(item), str(dest))
 
 
-def _download_with_gdown(folder_id: str, target: Path) -> None:
-    import gdown  # requirements.txt 에 포함
+def _download_with_gdown(folder_id: str, target: Path, required_file: str) -> None:
+    import gdown
     from gdown.exceptions import DownloadError
 
     target.mkdir(parents=True, exist_ok=True)
@@ -66,14 +64,11 @@ def _download_with_gdown(folder_id: str, target: Path) -> None:
         raise RuntimeError(
             f"Drive 폴더에 접근할 수 없습니다 (folder_id={folder_id}).\n"
             "  원인: 폴더가 비공개이거나 링크 공유가 꺼져 있습니다.\n"
-            "  해결 (둘 중 하나):\n"
-            "   (A) gdown 방식 — Drive 에서 Qwen3_fintech 폴더 우클릭 → 공유 →\n"
-            "       '링크가 있는 모든 사용자(뷰어)' 로 변경.\n"
-            "   (B) 서비스 계정(권장) — 폴더를 서비스 계정 이메일과 공유하고\n"
-            "       CSS_LLM_GDRIVE_SA_JSON 에 키 파일 경로를 설정.\n"
+            "  해결: (A) 폴더를 '링크가 있는 모든 사용자(뷰어)' 로 공유, 또는\n"
+            "        (B) 서비스 계정 이메일과 공유 후 CSS_LLM_GDRIVE_USE_ADC=1.\n"
             f"  (원본 오류: {e})"
         ) from e
-    _flatten_into(target)
+    _flatten_into(target, required_file)
 
 
 def _download_with_service_account(folder_id: str, sa_json: str, target: Path) -> None:
@@ -81,6 +76,7 @@ def _download_with_service_account(folder_id: str, sa_json: str, target: Path) -
 
     Cloud Run/GCE 에서는 런타임 서비스 계정으로 ADC 가 자동 제공되므로, 키
     파일 없이 폴더를 그 서비스 계정 이메일과 공유하기만 하면 된다(키 유출 0).
+    하위 폴더(checkpoint-*)는 건너뛰고 평면 파일만 받는다.
     """
     SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
     try:
@@ -91,7 +87,6 @@ def _download_with_service_account(folder_id: str, sa_json: str, target: Path) -
             "서비스 계정 방식에는 추가 패키지가 필요합니다: "
             "pip install google-api-python-client google-auth"
         ) from e
-    import io
 
     if sa_json:
         from google.oauth2 import service_account
@@ -107,60 +102,89 @@ def _download_with_service_account(folder_id: str, sa_json: str, target: Path) -
 
     target.mkdir(parents=True, exist_ok=True)
     query = f"'{folder_id}' in parents and trashed=false"
-    resp = service.files().list(
-        q=query, fields="files(id, name, mimeType)", pageSize=1000
-    ).execute()
-    files = resp.get("files", [])
+    page_token = None
+    files = []
+    while True:
+        resp = service.files().list(
+            q=query, fields="nextPageToken, files(id, name, mimeType, size)",
+            pageSize=1000, pageToken=page_token,
+        ).execute()
+        files.extend(resp.get("files", []))
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
     if not files:
         raise RuntimeError(
             f"폴더가 비었거나 서비스 계정에 공유되지 않았습니다 (folder_id={folder_id})."
         )
     for f in files:
         if f["mimeType"] == "application/vnd.google-apps.folder":
-            continue  # 어댑터는 평면 폴더라 하위 폴더는 건너뜀
+            continue  # 하위 폴더(checkpoint-*)는 건너뜀
         dest = target / f["name"]
-        log.info("다운로드: %s", f["name"])
+        if dest.exists() and f.get("size") and dest.stat().st_size == int(f["size"]):
+            log.info("이미 존재(크기 일치), 건너뜀: %s", f["name"])
+            continue
+        size_mb = (int(f["size"]) / 1e6) if f.get("size") else 0
+        log.info("다운로드: %s (%.1f MB)", f["name"], size_mb)
         request = service.files().get_media(fileId=f["id"])
         with io.FileIO(dest, "wb") as fh:
-            downloader = MediaIoBaseDownload(fh, request)
+            downloader = MediaIoBaseDownload(fh, request, chunksize=50 * 1024 * 1024)
             done = False
             while not done:
                 _, done = downloader.next_chunk()
 
 
-def download_adapter_from_drive(target_dir: str | Path) -> Path:
-    """환경변수 설정에 따라 어댑터를 target_dir 로 내려받는다.
+def download_drive_folder(folder_id: str, target_dir, required_file: str):
+    """Drive 폴더를 target_dir 로 내려받는다. required_file 이 이미 있으면 생략.
 
-    이미 받아져 있으면(adapter_config.json 존재) 다시 받지 않는다.
+    환경변수:
+      CSS_LLM_GDRIVE_SA_JSON  — 서비스 계정 키 파일 경로(설정 시 비공개)
+      CSS_LLM_GDRIVE_USE_ADC  — "1" 이면 런타임 SA(ADC)로 비공개 다운로드
+      (둘 다 없으면 gdown 공개 링크 방식)
     """
     target = Path(target_dir)
-    folder_id = os.environ.get("CSS_LLM_DRIVE_FOLDER_ID", "")
     sa_json = os.environ.get("CSS_LLM_GDRIVE_SA_JSON", "")
     use_adc = os.environ.get("CSS_LLM_GDRIVE_USE_ADC", "0") == "1"
 
-    if (target / REQUIRED_FILE).exists():
-        log.info("어댑터가 이미 존재합니다: %s (다운로드 생략)", target)
+    if (target / required_file).exists():
+        log.info("이미 존재합니다: %s (다운로드 생략)", target)
         return target
     if not folder_id:
-        raise RuntimeError(
-            "CSS_LLM_DRIVE_FOLDER_ID 가 설정되지 않았습니다. Drive 폴더 ID 를 지정하세요."
-        )
+        raise RuntimeError("Drive 폴더 ID 가 비어 있습니다.")
 
     if sa_json or use_adc:
-        # 비공개·권장 경로. sa_json 있으면 키 파일, 없으면 런타임 SA(ADC).
         log.info("서비스 계정 방식(비공개)으로 다운로드합니다.")
         _download_with_service_account(folder_id, sa_json, target)
     else:
         log.info("gdown(공개 링크) 방식으로 다운로드합니다.")
-        _download_with_gdown(folder_id, target)
+        _download_with_gdown(folder_id, target, required_file)
 
-    if not (target / REQUIRED_FILE).exists():
+    if not (target / required_file).exists():
         raise RuntimeError(
-            f"다운로드는 끝났지만 {REQUIRED_FILE} 를 찾지 못했습니다. "
+            f"다운로드는 끝났지만 {required_file} 를 찾지 못했습니다. "
             f"폴더 ID/공유 설정을 확인하세요: {target}"
         )
-    log.info("어댑터 다운로드 완료 → %s", target)
+    log.info("다운로드 완료 → %s", target)
     return target
+
+
+def download_adapter_from_drive(target_dir) -> Path:
+    """LoRA 어댑터를 CSS_LLM_DRIVE_FOLDER_ID 폴더에서 내려받는다."""
+    folder_id = os.environ.get("CSS_LLM_DRIVE_FOLDER_ID", "")
+    if not folder_id:
+        raise RuntimeError("CSS_LLM_DRIVE_FOLDER_ID 가 설정되지 않았습니다.")
+    return download_drive_folder(folder_id, target_dir, ADAPTER_REQUIRED_FILE)
+
+
+def download_base_from_drive(target_dir) -> Path:
+    """베이스 모델(Qwen3-14B)을 CSS_LLM_BASE_DRIVE_FOLDER_ID 폴더에서 내려받는다.
+
+    HF Hub 429 우회용. 이 환경변수가 없으면 호출하지 않는다(HF 에서 받음).
+    """
+    folder_id = os.environ.get("CSS_LLM_BASE_DRIVE_FOLDER_ID", "")
+    if not folder_id:
+        raise RuntimeError("CSS_LLM_BASE_DRIVE_FOLDER_ID 가 설정되지 않았습니다.")
+    return download_drive_folder(folder_id, target_dir, BASE_REQUIRED_FILE)
 
 
 def main() -> None:
@@ -168,10 +192,17 @@ def main() -> None:
     from src.utils.config import ARTIFACTS_DIR
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target", default=str(ARTIFACTS_DIR / "qwen3_lora"),
-                        help="어댑터를 저장할 로컬 경로.")
+    parser.add_argument("--base", action="store_true",
+                        help="어댑터 대신 베이스 모델을 받는다.")
+    parser.add_argument("--target", default=None, help="저장할 로컬 경로.")
     args = parser.parse_args()
-    download_adapter_from_drive(args.target)
+
+    if args.base:
+        target = args.target or str(ARTIFACTS_DIR / "qwen3_base")
+        download_base_from_drive(target)
+    else:
+        target = args.target or str(ARTIFACTS_DIR / "qwen3_lora")
+        download_adapter_from_drive(target)
 
 
 if __name__ == "__main__":

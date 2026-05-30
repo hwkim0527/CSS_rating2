@@ -24,7 +24,8 @@ substitutions:
   _SERVICE: css-rating2-gpu
   _REGION: us-central1
   _RUNTIME_SA: ""        # 비우면 프로젝트 기본 compute SA 사용(권장: 전용 SA 지정)
-  _DRIVE_FOLDER_ID: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"
+  _DRIVE_FOLDER_ID: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"     # 어댑터(LoRA) 폴더
+  _BASE_DRIVE_FOLDER_ID: ""   # 베이스 모델(Qwen3-14B) Drive 폴더 ID — HF 429 우회용
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -62,7 +63,7 @@ steps:
           --timeout=600s \
           --no-cpu-throttling \
           $$SA_FLAG \
-          --set-env-vars=CSS_ENABLE_LLM=1,CSS_LLM_BASE=Qwen/Qwen3-14B,CSS_LLM_DRIVE_FOLDER_ID=${_DRIVE_FOLDER_ID},CSS_LLM_GDRIVE_USE_ADC=1,HF_HOME=/app/.hf_cache,HF_HUB_ENABLE_HF_TRANSFER=0,HF_HUB_DISABLE_XET=1,HF_HUB_DOWNLOAD_TIMEOUT=60
+          --set-env-vars=CSS_ENABLE_LLM=1,CSS_LLM_BASE=Qwen/Qwen3-14B,CSS_LLM_DRIVE_FOLDER_ID=${_DRIVE_FOLDER_ID},CSS_LLM_BASE_DRIVE_FOLDER_ID=${_BASE_DRIVE_FOLDER_ID},CSS_LLM_GDRIVE_USE_ADC=1,HF_HOME=/app/.hf_cache,HF_HUB_ENABLE_HF_TRANSFER=0,HF_HUB_DISABLE_XET=1,HF_HUB_DOWNLOAD_TIMEOUT=60
 
 images:
   - "gcr.io/$PROJECT_ID/css-rating2-gpu:latest"
