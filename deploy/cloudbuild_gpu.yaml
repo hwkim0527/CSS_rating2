@@ -15,10 +15,11 @@
 #   - 인라인 bash 셸 변수는 $$ 로 이스케이프(Cloud Build 치환과 충돌 방지).
 #   - L4 GPU 드라이버는 CUDA 12.2 → Dockerfile.gpu 는 cu121 torch 사용.
 #   - 메모리 32Gi/8CPU: 14B 4bit 로딩 시 RAM 피크 대비.
-#   - min-instances=1: 데모용. 콜드스타트(이미지 pull+모델 로드) 회피. GPU 상시 과금.
+#   - _MIN_INSTANCES(기본 0): 0=scale-to-zero(유휴 시 GPU 과금 0, 단 첫 요청 콜드
+#     스타트 수분 — 이미지 pull + 14B 로딩). 1=상시 1대 유지(콜드스타트 회피, 단
+#     GPU 상시 과금 ~$300-500/월). 데모/검증은 0 권장, 라이브 시연만 1.
 #   - HF_HUB_DISABLE_XET=1: HF xet 프로토콜이 GCP IP대역에서 429 유발 → 비활성 필수.
-#   - 데모 종료 시 과금 중단: gcloud run services delete css-rating2-gpu --region=us-central1
-#     또는 --min-instances=0 으로 변경(미사용시 0으로 축소, 단 콜드스타트 수분).
+#   - 데모 종료 시 과금 완전 중단: gcloud run services delete css-rating2-gpu --region=us-central1
 #   - Cloud Run GPU(L4)는 us-central1 등 일부 리전만 지원(서울 미지원).
 substitutions:
   _SERVICE: css-rating2-gpu
@@ -26,6 +27,7 @@ substitutions:
   _RUNTIME_SA: ""        # 비우면 프로젝트 기본 compute SA 사용(권장: 전용 SA 지정)
   _DRIVE_FOLDER_ID: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"     # 어댑터(LoRA) 폴더
   _BASE_DRIVE_FOLDER_ID: ""   # 베이스 모델(Qwen3-14B) Drive 폴더 ID — HF 429 우회용
+  _MIN_INSTANCES: "0"         # 0=scale-to-zero(과금 안전·콜드스타트), 1=상시(과금)
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -58,7 +60,7 @@ steps:
           --memory=32Gi \
           --port=8080 \
           --max-instances=1 \
-          --min-instances=1 \
+          --min-instances=${_MIN_INSTANCES} \
           --concurrency=4 \
           --timeout=600s \
           --no-cpu-throttling \

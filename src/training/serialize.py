@@ -27,6 +27,27 @@ INSTRUCTION = (
     "다음 신청자 정보를 보고 12개월 내 채무불이행(부실) 여부를 정상/부실 중 하나로 판정하세요."
 )
 
+# ⚠️ 학습·추론·평가가 공유하는 단일 진실 원천. 셋 중 하나라도 어긋나면 학습된
+#    가중치의 첫 토큰 분포가 흔들려 부실확률이 왜곡된다(silent failure). 따라서
+#    프롬프트 문자열은 반드시 여기 한 곳에서만 정의한다.
+SYSTEM_PROMPT = (
+    "당신은 신용평가 전문가입니다. 신청자 정보를 보고 부실(1) 또는 정상(0)을 한 단어로 답하세요."
+)
+
+
+def build_chat_text(instruction: str, answer: str | None = None) -> str:
+    """Qwen ChatML 포맷 조립 (학습/추론 공통).
+
+    answer 가 주어지면 학습용(assistant 턴에 라벨까지 포함),
+    None 이면 추론용(assistant 턴을 비워 다음 토큰 로짓으로 라벨을 읽음).
+    """
+    head = (
+        f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n"
+        f"<|im_start|>user\n{instruction}<|im_end|>\n"
+        f"<|im_start|>assistant\n"
+    )
+    return head if answer is None else f"{head}{answer}<|im_end|>"
+
 
 def _safe_float(v, default: float = 0.0) -> float:
     try:

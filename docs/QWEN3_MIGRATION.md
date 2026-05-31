@@ -141,7 +141,23 @@ gcloud builds submit --config deploy/cloudbuild_gpu.yaml \
 
 ## 검증된 것 / 검증 안 된 것
 
+로컬(GPU 불필요) 검증은 `scripts/verify_llm_local.py` + `tests/test_llm_scoring.py`
+로 자동화되어 있다(`python -m scripts.verify_llm_local`, `pytest tests/test_llm_scoring.py`).
+
 - ✅ 코드/노트북/설정의 모델·경로·키 일관성 (정적 점검 통과).
-- ⚠️ 실제 Qwen3-14B 학습·추론은 **GPU 환경에서 미실행** — Colab 에서 1회
-  엔드투엔드 실행으로 검증 필요(특히 토크나이저의 "부실"/"정상" 단일 토큰
-  분해, Qwen3 `<think>` 억제 동작).
+- ✅ **학습 어댑터 실재 확인** — Drive `Qwen3_fintech` 에 `adapter_model.safetensors`
+  (~61MB), `adapter_config.json`(base=`Qwen/Qwen3-14B`, r=8, α=16), 토크나이저,
+  checkpoint-600/625 존재. 학습 1 epoch / train 10k·val 1k 완료(`training_summary.json`).
+- ✅ **토크나이저 단일 토큰 분해** — base Qwen3-14B 토크나이저에서 "부실"의 첫 토큰
+  (id=63089) ≠ "정상"의 첫 토큰(id=29281). 단일 토큰 logit 분류가 성립함(assert 통과).
+- ✅ **학습=추론=평가 프롬프트 일치** — system 프롬프트가 `serialize.build_chat_text`
+  단일 원천으로 통합됨. (이전엔 학습 "부실(1)/정상(0)" ↔ 추론 "부실/정상" 불일치가
+  있었음 — 추론/평가를 학습 포맷에 정렬해 해소.)
+- ✅ **어댑터 config 로드 호환** — 어댑터는 peft 0.19.1 로 저장됐고, 설치된 peft 가
+  그 config(신규 필드 포함)를 파싱 가능함을 실측 확인.
+- ✅ **score_with_llm 수학 경로** — 모델을 mock 해 softmax(`[neg,pos]`)→P(부실)
+  단위 테스트 통과(부실/정상 logit 우세 시 각각 →1/→0, 동률 시 0.5).
+- ⚠️ **실제 Qwen3-14B 4bit forward pass 는 여전히 미검증** — VRAM ≥10GB GPU 필요
+  (로컬은 RTX 3050 4GB 라 불가). Colab 또는 GCP GPU 에서 1회 엔드투엔드 실행으로
+  최종 검증 필요(`scripts/verify_llm_local.py` 가 그 직전까지의 모든 전제를 통과시킴).
+  Qwen3 `<think>` 억제 동작도 이때 함께 확인.

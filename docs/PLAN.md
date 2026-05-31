@@ -70,7 +70,7 @@ data/processed/{train,val,test}.parquet
 
 | 모델 | Params | 라이선스 | 추천 사유 |
 |---|---|---|---|
-| **Qwen3-14B** | 7B | Apache 2.0 | 한국어/영어 균형, 수치 추론 우수 |
+| **Qwen3-14B** | 14B | Apache 2.0 | 한국어/영어 균형, 수치 추론 우수 |
 | Llama-3.1-8B | 8B | Llama Community | 영어 강함, 생태계 풍부 |
 | Mistral-7B-v0.3 | 7B | Apache 2.0 | 빠른 추론 |
 | Gemma-2-9B | 9B | Gemma | 구글 백본, GCP 친화적 |

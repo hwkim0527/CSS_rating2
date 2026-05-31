@@ -98,11 +98,10 @@ def _resolve_resume(output_dir: str, resume_arg: str):
 
 
 def format_sample(example: dict) -> str:
-    return (
-        f"<|im_start|>system\n당신은 신용평가 전문가입니다. 신청자 정보를 보고 부실(1) 또는 정상(0)을 한 단어로 답하세요.<|im_end|>\n"
-        f"<|im_start|>user\n{example['instruction']}<|im_end|>\n"
-        f"<|im_start|>assistant\n{example['output']}<|im_end|>"
-    )
+    # 프롬프트는 serialize 의 단일 진실 원천을 사용 — 추론/평가와 글자까지 동일 보장.
+    from src.training.serialize import build_chat_text
+
+    return build_chat_text(example["instruction"], example["output"])
 
 
 def main() -> None:

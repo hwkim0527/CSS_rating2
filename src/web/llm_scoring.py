@@ -28,7 +28,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from src.training.serialize import row_to_prompt
+from src.training.serialize import build_chat_text, row_to_prompt
 from src.utils.config import ARTIFACTS_DIR
 
 log = logging.getLogger("llm_scoring")
@@ -137,10 +137,9 @@ def score_with_llm(payload: dict) -> float:
     import torch
 
     model, tok, pos_id, neg_id = _load_llm()
-    prompt = (
-        f"<|im_start|>system\n당신은 신용평가 전문가입니다. 신청자 정보를 보고 부실 또는 정상을 한 단어로 답하세요.<|im_end|>\n"
-        f"<|im_start|>user\n{row_to_prompt(payload)}<|im_end|>\n<|im_start|>assistant\n"
-    )
+    # 프롬프트는 학습(llm_finetune.format_sample)과 동일한 serialize.build_chat_text 사용.
+    # 가중치가 그 포맷에 고정돼 있으므로 한 글자라도 어긋나면 첫 토큰 분포가 흔들린다.
+    prompt = build_chat_text(row_to_prompt(payload))
     inputs = tok(prompt, return_tensors="pt").to(model.device)
     with torch.no_grad():
         logits = model(**inputs).logits[0, -1]

@@ -218,8 +218,41 @@ code {
   color: var(--primary-dark);
 }
 
+/* 평가 모델 선택기 */
+.model-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.radio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.radio-card:hover { border-color: var(--primary); }
+.radio-card:has(input:checked) {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+.radio-card .rc-title { font-weight: 600; }
+.radio-card .rc-note { font-size: 12px; color: var(--muted); }
+.radio-card.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--bg-body);
+}
+.radio-card.disabled:hover { border-color: var(--border); }
+.primary:disabled { background: #93c5fd; cursor: progress; }
+
 @media (max-width: 720px) {
   .result-grid { grid-template-columns: 1fr; }
   .kpi-list { grid-template-columns: 1fr; }
   .topbar { padding: 12px 16px; }
+  .model-select { grid-template-columns: 1fr; }
 }

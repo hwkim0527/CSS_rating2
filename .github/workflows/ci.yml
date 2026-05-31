@@ -30,7 +30,9 @@ jobs:
         env:
           PYTHONUTF8: "1"
         run: |
-          pytest tests/test_smoke.py -v
+          # test_llm_scoring 의 forward-pass 테스트는 torch 미설치 시 자동 skip,
+          # 프롬프트 일관성/엔드포인트(503·llm_status·모델선택기) 테스트는 항상 실행.
+          pytest tests/test_smoke.py tests/test_llm_scoring.py -v
 
   docker-build:
     runs-on: ubuntu-latest

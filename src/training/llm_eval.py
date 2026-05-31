@@ -13,6 +13,8 @@ import json
 import logging
 from pathlib import Path
 
+from src.training.serialize import build_chat_text
+
 log = logging.getLogger("llm_eval")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -72,10 +74,8 @@ def main() -> None:
 
     y_true, y_score = [], []
     for ex in examples:
-        prompt = (
-            f"<|im_start|>system\n당신은 신용평가 전문가입니다. 신청자 정보를 보고 부실 또는 정상을 한 단어로 답하세요.<|im_end|>\n"
-            f"<|im_start|>user\n{ex['instruction']}<|im_end|>\n<|im_start|>assistant\n"
-        )
+        # 학습(llm_finetune.format_sample)과 동일한 serialize.build_chat_text 사용.
+        prompt = build_chat_text(ex["instruction"])
         inputs = tok(prompt, return_tensors="pt").to(model.device)
         with torch.no_grad():
             logits = model(**inputs).logits[0, -1]

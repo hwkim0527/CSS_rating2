@@ -115,8 +115,22 @@
     </label>
   </div>
 
+  <h2>평가 모델 선택</h2>
+  <div class="model-select" id="model-select">
+    <label class="radio-card">
+      <input type="radio" name="model" value="xgboost" checked />
+      <span class="rc-title">XGBoost</span>
+      <span class="rc-note">전통 ML · 즉시 응답</span>
+    </label>
+    <label class="radio-card" id="llm-card">
+      <input type="radio" name="model" value="llm" />
+      <span class="rc-title">Qwen3-14B sLLM</span>
+      <span class="rc-note" id="llm-note">AI 언어모델 · 상태 확인 중…</span>
+    </label>
+  </div>
+
   <div class="actions">
-    <button type="submit" class="primary">신용점수 산출하기</button>
+    <button type="submit" class="primary" id="submit-btn">신용점수 산출하기</button>
     <button type="button" class="secondary" id="reset-btn">초기화</button>
   </div>
 </form>
