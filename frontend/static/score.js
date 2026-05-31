@@ -108,19 +108,27 @@ resetBtn.addEventListener("click", () => {
 });
 
 function renderResult(out) {
+  const prob = Number(out.default_probability) || 0;
   document.getElementById("r-score").textContent = out.credit_score;
-  document.getElementById("r-grade").textContent = `등급 ${out.risk_grade}`;
-  document.getElementById("r-prob").textContent = (out.default_probability * 100).toFixed(2) + "%";
+  document.getElementById("r-grade").textContent = out.risk_grade;   // 등급 문자(badge 가 "등급" 표기)
+  document.getElementById("r-prob").innerHTML =
+    (prob * 100).toFixed(1) + '<span class="pct">%</span>';
   document.getElementById("r-model").textContent = out.model_name;
   document.getElementById("r-grade-kr").textContent = out.risk_grade_kr;
+
+  // 라디얼 게이지 채움 + 등급별 위험색(A~E) 부여
+  const gauge = document.getElementById("r-gauge");
+  gauge.style.setProperty("--p", Math.max(0.02, Math.min(prob, 1)).toFixed(3));
+  resultBox.className = "result card grade-" + (out.risk_grade || "C");
 
   const factors = document.getElementById("r-factors");
   factors.innerHTML = "";
   for (const f of out.top_factors) {
     const li = document.createElement("li");
-    li.innerHTML = `<span class="impact-${f.impact}">[${f.impact}]</span> <strong>${f.factor}</strong>: ${f.note}`;
+    li.innerHTML =
+      `<span class="tag impact-${f.impact}">${f.impact}</span>` +
+      `<span><strong>${f.factor}</strong> · ${f.note}</span>`;
     factors.appendChild(li);
   }
-  resultBox.classList.remove("hidden");
   resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
 }

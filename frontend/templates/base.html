@@ -4,25 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}CSS Rating 2 — AI 신용평가시스템{% endblock %}</title>
+  <meta name="description" content="개인 금융정보로 12개월 내 부실(채무불이행) 확률을 산출하는 AI 신용평가 데모. XGBoost + Qwen3-14B sLLM." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
+  <div class="bg-grain" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
   <header class="topbar">
-    <div class="brand">
-      <span class="logo">●</span>
-      <span>CSS Rating <strong>2</strong></span>
-    </div>
-    <nav>
-      <a href="/">신용평가</a>
-      <a href="/compare">모델 비교</a>
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">
+        <span class="brand-ring"></span>
+        <span class="brand-dot"></span>
+      </span>
+      <span class="brand-text">CSS&nbsp;<em>Rating</em><span class="brand-2">2</span></span>
+    </a>
+    <nav class="nav">
+      <a href="/" class="nav-link {% block nav_score %}{% endblock %}">신용평가</a>
+      <a href="/compare" class="nav-link {% block nav_compare %}{% endblock %}">모델 비교</a>
+      <a href="/docs" class="nav-link nav-ghost" target="_blank" rel="noopener">API</a>
     </nav>
   </header>
+
   <main class="container">
     {% block content %}{% endblock %}
   </main>
-  <footer>
-    <small>본 시스템은 Lending Club 공개 데이터로 학습된 연구·교육용 데모입니다. 실제 신용 결정 용도가 아닙니다.</small>
+
+  <footer class="site-footer">
+    <span class="dot-rule" aria-hidden="true"></span>
+    <small>본 시스템은 Lending Club 공개 데이터로 학습된 <strong>연구·교육용 데모</strong>입니다. 실제 신용 결정 용도가 아닙니다.</small>
   </footer>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

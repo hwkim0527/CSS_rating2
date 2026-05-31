@@ -25,7 +25,10 @@ substitutions:
   _SERVICE: css-rating2-gpu
   _REGION: us-central1
   _RUNTIME_SA: ""        # 비우면 프로젝트 기본 compute SA 사용(권장: 전용 SA 지정)
-  _DRIVE_FOLDER_ID: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"     # 어댑터(LoRA) 폴더
+  # 어댑터(LoRA) 폴더. 현재 v2 재학습 step-2500 체크포인트(r=16/α32, Qwen3_fintech_v2/
+  # checkpoint-2500)를 가리킨다. 최종 저장(루트) 완료 시 그 폴더 ID 로 교체.
+  # (이전 v1 r=8 어댑터: 1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY)
+  _DRIVE_FOLDER_ID: "1A9fCPxXLWhpMleDjQXtgdQojzDypTgqY"
   # 베이스 모델(Qwen3-14B ~29.5GB) Drive 폴더 — HF Hub 429 우회(GCP IP대역). 비우면
   # 런타임이 HF 에서 받다가 429 로 워밍 실패하므로, 실제 Qwen3_base 폴더 ID 를 기본값으로 둔다.
   _BASE_DRIVE_FOLDER_ID: "1eApJ_1cAz7oLXgXXgC9N9e7gwX-zF_M0"

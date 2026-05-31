@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% block title %}모델 비교 — CSS Rating 2{% endblock %}
+{% block nav_compare %}is-active{% endblock %}
 {% block content %}
 <section class="hero">
-  <h1>전통 모델 vs AI 모델 성능 비교</h1>
-  <p>Lending Club 테스트셋에서 측정한 실제 성능입니다.</p>
+  <p class="eyebrow">Benchmark · Lending Club Test Set</p>
+  <h1>전통 모델 vs <span class="accent">AI 모델</span> 성능 비교</h1>
+  <p>로지스틱 회귀(전통) · XGBoost · Qwen3-14B sLLM 을 동일 테스트셋에서 측정한 실제 성능입니다.</p>
 </section>
 
 {% if not metrics %}

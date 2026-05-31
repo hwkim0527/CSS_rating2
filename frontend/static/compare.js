@@ -13,8 +13,8 @@
     items.push({ name: m.label_kr || key, value: m.auc });
   }
 
-  // Background
-  ctx.fillStyle = "#f8fafc";
+  // Background (paper)
+  ctx.fillStyle = "#fbf8f1";
   ctx.fillRect(0, 0, W, H);
 
   const paddingLeft = 200;
@@ -30,9 +30,9 @@
   const xFor = (v) => paddingLeft + (v / 1.0) * chartW;
 
   // Reference grid
-  ctx.strokeStyle = "#cbd5e1";
-  ctx.fillStyle = "#64748b";
-  ctx.font = "11px sans-serif";
+  ctx.strokeStyle = "#ddd5c4";
+  ctx.fillStyle = "#8a8170";
+  ctx.font = "11px 'JetBrains Mono', monospace";
   for (let t = 0.5; t <= 1.0; t += 0.1) {
     const x = xFor(t);
     ctx.beginPath();
@@ -47,15 +47,15 @@
     const y = paddingTop + gap + i * (barH + gap);
     const value = it.value;
     // Label
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#1b1813";
+    ctx.font = "12px 'Pretendard', sans-serif";
     const label = it.name.length > 26 ? it.name.slice(0, 25) + "…" : it.name;
     ctx.fillText(label, 10, y + barH / 2 + 4);
 
     if (value == null) {
-      ctx.fillStyle = "#cbd5e1";
+      ctx.fillStyle = "#ddd5c4";
       ctx.fillRect(paddingLeft, y, 10, barH);
-      ctx.fillStyle = "#94a3b8";
+      ctx.fillStyle = "#8a8170";
       ctx.fillText("학습 대기", paddingLeft + 16, y + barH / 2 + 4);
       return;
     }
@@ -63,18 +63,18 @@
     const startX = xFor(0.5);
     const endX = xFor(value);
     const grad = ctx.createLinearGradient(startX, 0, endX, 0);
-    grad.addColorStop(0, "#60a5fa");
-    grad.addColorStop(1, "#2563eb");
+    grad.addColorStop(0, "#2f9b76");
+    grad.addColorStop(1, "#154a39");
     ctx.fillStyle = grad;
     ctx.fillRect(startX, y, endX - startX, barH);
 
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 12px sans-serif";
+    ctx.fillStyle = "#1b1813";
+    ctx.font = "bold 12px 'JetBrains Mono', monospace";
     ctx.fillText(value.toFixed(4), endX + 6, y + barH / 2 + 4);
   });
 
   // Title
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "bold 13px sans-serif";
+  ctx.fillStyle = "#1b1813";
+  ctx.font = "bold 13px 'Noto Serif KR', serif";
   ctx.fillText("Test-set AUC (0.5=무작위, 1.0=완벽)", 10, 14);
 })();

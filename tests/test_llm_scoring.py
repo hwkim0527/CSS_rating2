@@ -238,6 +238,6 @@ def test_warming_spawns_single_loader_under_concurrency(monkeypatch) -> None:
 
 def test_index_has_model_selector() -> None:
     html = _client().get("/").text
-    assert "평가 모델 선택" in html
+    assert 'id="model-select"' in html and 'name="model"' in html
     assert "Qwen3-14B sLLM" in html
     assert 'value="llm"' in html
