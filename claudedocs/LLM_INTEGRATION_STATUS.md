@@ -8,15 +8,18 @@
 미배포**(재빌드 필요)이며, 비용 보호를 위해 **min=0** 으로 내려 **LLM 콜드 요청은
 현재 행(hang)/끊김** 상태다(XGBoost만 콜드에서 신뢰성 있게 서빙). 자세한 경계는 아래.
 
-## ⚠️ 상태 정확성 경계 (과대표현 방지)
-- **라이브 = 구 코드**: 이번 세션의 수정(serialize 프롬프트 단일화, index.html 모델선택기,
-  score.js, entrypoint 주석)은 전부 **미커밋·미배포**. 라이브 `:latest` 이미지는 이전 커밋
-  기반이라 **라이브 웹 UI엔 sLLM 모델 선택기가 없고**(브라우저에선 XGBoost만; sLLM은
-  `/api/score_llm` 직접 호출만 가능), 추론 프롬프트도 구버전. 실측 AUC 0.640도 *구 프롬프트* 값.
-- **min=0의 실제 의미**: 유휴 후 첫 `/api/score_llm` = 콜드 인스턴스 → 핸들러 안에서
-  29.5GB lazy 다운로드(~11분) → 클라이언트 연결 끊김(HTTP 000), 재시도 시 인스턴스 증식·재다운로드.
-  즉 **콜드 상태에서 LLM 엔드포인트는 클라이언트에 사실상 미작동**. 신뢰성 서빙은 XGBoost뿐.
-  (사용자가 min=1을 고른 이유가 이 콜드스타트 회피였음 — 비용 보호와 trade-off.)
+## 재빌드·재배포 완료 (rev 00016, 2026-05-31) — 경계 해소됨
+이전 경계(라이브=구코드, min=0 콜드 미작동)는 **재빌드+재배포로 모두 해소**됨:
+- **라이브 = 신 코드**: 3개 커밋(프롬프트 단일화·UI 모델선택기·워밍 조율·리뷰수정 15건)을
+  빌드해 배포(rev `css-rating2-gpu-00016-ztw`). 라이브 웹 UI에 **모델 선택기(XGBoost/Qwen3-14B sLLM) 노출 확인.**
+- **워밍 조율 검증**: 기동 후 warm_status warming(~8.5분, 베이스 29.5GB Drive 다운로드+로딩)
+  → **ready**. ready 후 `/api/score_llm` 저위험 200(3.5s) / 고위험 200(0.78s) / 3차 0.74s —
+  **HTTP 000 연결 끊김 없음.** ready 전 요청은 즉시 503("워밍 중")으로 graceful.
+- **min=1 상시(사용자 선택)** + concurrency=1(단일 GPU forward 직렬화로 OOM 방지) + 베이스
+  모델 Drive 폴더 기본값(HF 429 우회) + 다운로드 완료 센티넬(부분 다운로드 자가복구).
+- ⚠️ **여전한 정직성 경계**: 배포된 모델은 **기존 v1 어댑터(r=8/10k)** 라 변별력은 그대로 약함
+  (출력 0.173/0.178, AUC≈0.640). 품질 개선은 **v2 재학습 노트북 실행**으로만 달성(코드/서빙 문제 아님).
+  그리고 **min=1 상시 GPU = ~$300-500/월 과금** 지속 중(아래 teardown 참조).
 
 ## 라이브 추론 검증 결과 (2026-05-31, Cloud Run GPU L4 실측)
 - ✅ **추론 작동·무에러**: `/api/score_llm` → `200 OK`, 8/8 샤드 4bit GPU 로딩 성공, OOM 없음.
@@ -67,12 +70,13 @@ LLM이 GBM을 능가하지 못함(README 한계 4와 일치). **개선 레버 = 
 - `deploy/cloudbuild_gpu.yaml` — `_MIN_INSTANCES`(기본 0=과금 안전) 파라미터화
 - `docs/QWEN3_MIGRATION.md`, `docs/PLAN.md`, `artifacts/metrics.json` — 정직성/현황 갱신
 
-## 현재 배포 상태 (2026-05-31 기준)
-- 서비스 `css-rating2-gpu` (us-central1, L4) **min-instances=0 으로 변경**(리비전 00015).
-  → 유휴 시 GPU 과금 0, on-demand 동작(첫 요청 콜드스타트 수분). 측정 종료 후 비용 보호.
-- URL: https://css-rating2-gpu-u4exkcsxwq-uc.a.run.app  (`/`, `/api/score`, `/api/score_llm`, `/compare`)
-- 사용자는 always-on(min=1, ~$300-500/월)을 골랐으나, LLM 변별력이 베이스라인 미만으로
-  드러나 전제가 약해져 **가역적으로 min=0** 으로 내려둠. 복구는 한 커맨드(아래).
+## 현재 배포 상태 (2026-05-31 기준, rev 00016)
+- 서비스 `css-rating2-gpu` (us-central1, L4) **min-instances=1 (상시·사용자 선택)**, concurrency=1.
+- URL: https://css-rating2-gpu-u4exkcsxwq-uc.a.run.app  (`/`, `/api/score`, `/api/score_llm`, `/api/llm_status`, `/compare`)
+- LLM 워밍 검증 완료(ready, 콜드 요청 끊김 없음). **min=1 상시 GPU = ~$300-500/월 과금 진행 중.**
+- 비용 조절(한 커맨드):
+  - scale-to-zero(유휴 과금~0): `gcloud run services update css-rating2-gpu --region=us-central1 --min-instances=0`
+  - 완전 중단: `gcloud run services delete css-rating2-gpu --region=us-central1`
 
 ## 남은 선택지 (사용자 결정)
 1. **LLM을 쓸모 있게 = 재학습** (진짜 레버): Colab 노트북으로 epoch↑(예: 3) /
