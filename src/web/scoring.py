@@ -164,12 +164,28 @@ def explain_top_factors(payload: dict, prob: float) -> list[dict]:
 
 def score_one(payload: dict, model_key: str = "xgboost") -> dict:
     if model_key == "llm":
-        from src.web.llm_scoring import llm_available, score_with_llm
+        from src.web.llm_scoring import (
+            ensure_warming_started,
+            llm_available,
+            score_with_llm,
+            warm_status,
+        )
         if not llm_available():
             raise RuntimeError(
                 "LLM 어댑터가 없거나 CSS_ENABLE_LLM=1이 설정되지 않았습니다. "
                 "artifacts/qwen3_lora/에 어댑터를 두거나 CSS_LLM_DRIVE_FOLDER_ID 로 "
                 "Google Drive 다운로드를 설정하세요."
+            )
+        # 워밍을 시작(또는 진행 확인)하되 절대 여기서 다운로드/로딩을 동기 수행하지
+        # 않는다. ready 가 아니면 즉시 503 으로 돌려보내 연결 끊김/동시 다운로드를 막는다.
+        ensure_warming_started()
+        st = warm_status()
+        if st["status"] != "ready":
+            if st["status"] == "error":
+                raise RuntimeError(f"LLM 모델 로딩 실패: {st['error']}")
+            raise RuntimeError(
+                f"LLM 모델을 준비(워밍) 중입니다 (status={st['status']}). 베이스 모델"
+                "(~29GB) 다운로드·로딩에 수 분 걸릴 수 있으니 잠시 후 다시 시도하세요."
             )
         prob = score_with_llm(payload)
         model_name = "Qwen3-14B QLoRA"

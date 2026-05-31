@@ -130,7 +130,8 @@ def test_llm_status_endpoint_shape() -> None:
     r = _client().get("/api/llm_status")
     assert r.status_code == 200
     body = r.json()
-    for key in ("enabled_flag", "adapter_path", "adapter_present", "available_for_inference"):
+    for key in ("enabled_flag", "adapter_path", "adapter_present",
+                "available_for_inference", "warm_status", "warm_error"):
         assert key in body, f"누락된 키: {key}"
     # 기본(LLM 비활성) 환경에서는 추론 불가여야 한다.
     assert body["available_for_inference"] is False
@@ -141,6 +142,98 @@ def test_score_llm_returns_503_when_unavailable() -> None:
     r = _client().post("/api/score_llm", json=SAMPLE)
     assert r.status_code == 503, r.text
     assert "LLM" in r.json()["detail"] or "어댑터" in r.json()["detail"]
+
+
+def test_score_llm_503_while_warming(monkeypatch) -> None:
+    """가용하지만 아직 워밍 중이면 다운로드를 트리거하지 않고 503(워밍 중)을 반환."""
+    from src.web import llm_scoring
+    monkeypatch.setattr(llm_scoring, "llm_available", lambda: True)
+    monkeypatch.setattr(llm_scoring, "ensure_warming_started", lambda: "warming")
+    monkeypatch.setattr(llm_scoring, "warm_status",
+                        lambda: {"status": "warming", "error": None})
+    # 워밍 중에 _load_llm 이 절대 호출되면 안 된다(다운로드 트리거 금지).
+    def _boom():
+        raise AssertionError("워밍 중에는 _load_llm 이 호출되면 안 됩니다")
+    monkeypatch.setattr(llm_scoring, "_load_llm", _boom)
+    r = _client().post("/api/score_llm", json=SAMPLE)
+    assert r.status_code == 503, r.text
+    assert "워밍" in r.json()["detail"]
+
+
+def test_score_llm_200_when_ready(monkeypatch) -> None:
+    """워밍 ready 면 정상 200 + model_name=Qwen3-14B QLoRA."""
+    from src.web import llm_scoring
+    monkeypatch.setattr(llm_scoring, "llm_available", lambda: True)
+    monkeypatch.setattr(llm_scoring, "ensure_warming_started", lambda: "ready")
+    monkeypatch.setattr(llm_scoring, "warm_status",
+                        lambda: {"status": "ready", "error": None})
+    monkeypatch.setattr(llm_scoring, "score_with_llm", lambda payload: 0.42)
+    r = _client().post("/api/score_llm", json=SAMPLE)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["model_name"] == "Qwen3-14B QLoRA"
+    assert abs(body["default_probability"] - 0.42) < 1e-9
+
+
+def test_score_llm_503_on_warm_error(monkeypatch) -> None:
+    """워밍 실패(error) 시 503 + 오류 메시지 노출(500 아님)."""
+    from src.web import llm_scoring
+    monkeypatch.setattr(llm_scoring, "llm_available", lambda: True)
+    monkeypatch.setattr(llm_scoring, "ensure_warming_started", lambda: "error")
+    monkeypatch.setattr(llm_scoring, "warm_status",
+                        lambda: {"status": "error", "error": "OOM"})
+    r = _client().post("/api/score_llm", json=SAMPLE)
+    assert r.status_code == 503, r.text
+    assert "OOM" in r.json()["detail"] or "실패" in r.json()["detail"]
+
+
+# ── 워밍 조율 불변식 (race 방지 회귀 가드) ──────────────────────────────────
+
+def test_load_llm_is_lru_cached() -> None:
+    """_load_llm 은 lru_cache 여야 한다 — 워밍 스레드가 채운 모델을 요청이 재적재 없이 재사용."""
+    from src.web import llm_scoring
+    assert hasattr(llm_scoring._load_llm, "cache_info"), "_load_llm 이 lru_cache 가 아님"
+
+
+def test_warming_spawns_single_loader_under_concurrency(monkeypatch) -> None:
+    """동시 N회 ensure_warming_started 에도 _load_llm(다운로드/로딩)은 정확히 1회만 실행.
+
+    목표 2(단일 워밍 스레드 → 동시 다운로드 race 방지)의 핵심 불변식을 실제
+    _warm_lock/CAS 로직을 행사해 검증한다(게이트를 stub 하지 않음).
+    """
+    import threading
+    import time as _time
+    from src.web import llm_scoring
+
+    monkeypatch.setattr(llm_scoring, "LLM_ENABLED", True)
+    with llm_scoring._warm_lock:
+        llm_scoring._warm_state.update({"status": "cold", "error": None, "error_ts": 0.0})
+
+    calls = {"n": 0}
+    entered = threading.Event()
+    release = threading.Event()
+
+    def fake_load():
+        calls["n"] += 1
+        entered.set()
+        release.wait(3.0)  # 로딩 진행 중 다른 호출들이 들어오도록 블록
+        return ("model", "tok", 1, 0)
+
+    monkeypatch.setattr(llm_scoring, "_load_llm", fake_load)
+    try:
+        threads = [threading.Thread(target=llm_scoring.ensure_warming_started) for _ in range(8)]
+        for t in threads:
+            t.start()
+        assert entered.wait(3.0), "워밍 스레드가 _load_llm 에 진입하지 못함"
+        for t in threads:
+            t.join(3.0)
+        release.set()
+        _time.sleep(0.3)
+        assert calls["n"] == 1, f"_load_llm 이 {calls['n']}회 호출됨(단일 스폰 위반)"
+    finally:
+        release.set()
+        with llm_scoring._warm_lock:
+            llm_scoring._warm_state.update({"status": "cold", "error": None, "error_ts": 0.0})
 
 
 def test_index_has_model_selector() -> None:

@@ -27,9 +27,14 @@ from pathlib import Path
 
 log = logging.getLogger("download_model")
 
-# 폴더 종류별 "이게 있으면 다운로드 완료" 로 인정하는 대표 파일
+# 폴더 종류별 "이게 있으면 (적어도) 받기 시작했다" 로 보는 대표 파일
 ADAPTER_REQUIRED_FILE = "adapter_config.json"
 BASE_REQUIRED_FILE = "config.json"
+# ⚠️ 완료 판정은 대표 파일이 아니라 이 센티넬로 한다. 대표 파일(config.json 등)은
+#    작아서 다운로드 초반에 떨어지므로, 거대 샤드(safetensors)가 중간에 끊긴
+#    부분 다운로드를 '완료'로 오인할 수 있다(영구 손상 캐시). 모든 파일을 받은
+#    뒤에만 이 센티넬을 기록하고, 스킵 판정도 센티넬 존재로만 한다.
+COMPLETE_SENTINEL = ".download_complete"
 
 
 def _flatten_into(target: Path, required_file: str) -> None:
@@ -145,13 +150,18 @@ def download_drive_folder(folder_id: str, target_dir, required_file: str):
     target = Path(target_dir)
     sa_json = os.environ.get("CSS_LLM_GDRIVE_SA_JSON", "")
     use_adc = os.environ.get("CSS_LLM_GDRIVE_USE_ADC", "0") == "1"
+    sentinel = target / COMPLETE_SENTINEL
 
-    if (target / required_file).exists():
-        log.info("이미 존재합니다: %s (다운로드 생략)", target)
+    # 완료 센티넬이 있을 때만 '받기 완료'로 인정한다(부분 다운로드 오인 방지).
+    if sentinel.exists():
+        log.info("이미 완료(센티넬 존재): %s (다운로드 생략)", target)
         return target
     if not folder_id:
         raise RuntimeError("Drive 폴더 ID 가 비어 있습니다.")
 
+    # 센티넬이 없으면(최초 또는 중단된 다운로드) 다시 받는다. 서비스계정 경로는
+    # 파일별 크기 검증으로 누락/절단된 파일만 재다운로드(resume)하므로, 중단 후
+    # 재시도가 자가복구된다.
     if sa_json or use_adc:
         log.info("서비스 계정 방식(비공개)으로 다운로드합니다.")
         _download_with_service_account(folder_id, sa_json, target)
@@ -164,7 +174,9 @@ def download_drive_folder(folder_id: str, target_dir, required_file: str):
             f"다운로드는 끝났지만 {required_file} 를 찾지 못했습니다. "
             f"폴더 ID/공유 설정을 확인하세요: {target}"
         )
-    log.info("다운로드 완료 → %s", target)
+    # 모든 파일 수신 확인 후에만 완료 센티넬 기록(이 뒤로는 스킵된다).
+    sentinel.write_text("ok\n", encoding="utf-8")
+    log.info("다운로드 완료 → %s (센티넬 기록)", target)
     return target
 
 

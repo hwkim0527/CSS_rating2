@@ -62,5 +62,6 @@ RUN sed -i 's/\r$//' ./deploy/entrypoint.sh && chmod +x ./deploy/entrypoint.sh
 
 EXPOSE 8080
 
-# 시작 시 GPU 진단 → (LLM 켜진 경우) Drive 어댑터 백그라운드 다운로드 → 서버 기동.
+# 시작 시 GPU 진단 → 서버 기동(포트 즉시 오픈). LLM 워밍(어댑터+베이스 다운로드 +
+# 4bit 로딩)은 앱 startup 에서 단일 백그라운드 스레드로 조율됨(entrypoint 아님).
 CMD ["sh", "./deploy/entrypoint.sh"]

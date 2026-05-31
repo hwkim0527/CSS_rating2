@@ -26,7 +26,9 @@ substitutions:
   _REGION: us-central1
   _RUNTIME_SA: ""        # 비우면 프로젝트 기본 compute SA 사용(권장: 전용 SA 지정)
   _DRIVE_FOLDER_ID: "1q6P-9a_U3bvln9XKeTKpe-3D6bNj-yYY"     # 어댑터(LoRA) 폴더
-  _BASE_DRIVE_FOLDER_ID: ""   # 베이스 모델(Qwen3-14B) Drive 폴더 ID — HF 429 우회용
+  # 베이스 모델(Qwen3-14B ~29.5GB) Drive 폴더 — HF Hub 429 우회(GCP IP대역). 비우면
+  # 런타임이 HF 에서 받다가 429 로 워밍 실패하므로, 실제 Qwen3_base 폴더 ID 를 기본값으로 둔다.
+  _BASE_DRIVE_FOLDER_ID: "1eApJ_1cAz7oLXgXXgC9N9e7gwX-zF_M0"
   _MIN_INSTANCES: "0"         # 0=scale-to-zero(과금 안전·콜드스타트), 1=상시(과금)
 
 steps:
@@ -61,7 +63,7 @@ steps:
           --port=8080 \
           --max-instances=1 \
           --min-instances=${_MIN_INSTANCES} \
-          --concurrency=4 \
+          --concurrency=1 \
           --timeout=600s \
           --no-cpu-throttling \
           $$SA_FLAG \
