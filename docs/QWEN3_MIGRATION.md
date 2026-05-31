@@ -32,8 +32,8 @@
 | `Dockerfile`, `render.yaml` | entrypoint 적용 + LLM 환경변수(기본 OFF) |
 | `deploy/vertex_train.yaml`, `deploy/vertex_bootstrap.sh` | GCP 대안 경로도 Qwen3-14B 로 동기화 |
 
-> 레거시 노트북 `train_llm_colab.ipynb`, `train_llm_colab_enterprise.ipynb` 는
-> Qwen2.5 기준 그대로 보존(참고용). 신규 학습은 `train_llm_colab_qwen3_14b.ipynb` 사용.
+> 레거시 Qwen2.5 노트북(`train_llm_colab.ipynb`, `train_llm_colab_enterprise.ipynb`)은
+> 정리 시 삭제됨. 학습은 `train_llm_colab_qwen3_14b.ipynb`(Qwen3-14B, 50k/3ep/r16) 사용.
 
 ## 1단계 — Colab 에서 학습 (사용자 직접 실행)
 
