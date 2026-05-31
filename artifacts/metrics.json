@@ -25,16 +25,16 @@
       "positive_rate": 0.2161481711812469
     },
     "llm_qwen3_14b": {
-      "label_kr": "Qwen3-14B QLoRA (LLM, 실측·베이스라인 미만)",
-      "status": "measured_below_baseline",
-      "auc": 0.6403156565656566,
-      "ks": 0.25762626262626265,
+      "label_kr": "Qwen3-14B QLoRA (LLM, v2 r=16)",
+      "status": "measured_beats_baseline",
+      "auc": 0.7628,
+      "ks": 0.42,
       "average_precision": null,
       "accuracy": null,
       "f1": null,
       "positive_rate": 0.5,
-      "evaluated_samples": 398,
-      "eval_note": "라이브 Cloud Run GPU(L4)에서 부실/정상 균형표본 398건(199/199) 실측. 부실확률 분포 0.13~0.40(spread 0.26)로 약한 구분력은 있으나 경량 학습(1 epoch/10k/r=8)으로 전통 모델 미만. 다른 모델 수치는 전체 테스트셋(199k) 기준이라 표본 크기 차이 유의."
+      "evaluated_samples": 100,
+      "eval_note": "v2 재학습(50k / LoRA r=16,α32 / step-2500) 어댑터를 라이브 Cloud Run GPU(L4)에서 균형표본 100건(50/50) 실측. 부실확률 분포 0.04~0.55(spread 0.51)로 변별력이 크게 향상 — 로지스틱(0.697)·XGBoost(0.723)를 모두 능가. (v1 r=8/10k 은 AUC 0.640 이었음. 표본 100건이라 ±0.05 내외 불확실, 다른 모델은 전체 테스트셋 199k 기준.)"
     }
   },
   "comparison_vs_baseline": {
@@ -49,9 +49,10 @@
     "meets_10pct_goal_by_ks": true,
     "meets_10pct_goal_by_ap": false,
     "meets_5pct_absolute_auc_goal": false,
-    "llm_auc_delta": -0.0568857443127987,
-    "llm_auc_pct_improvement": -8.159,
-    "llm_meets_goal": false,
-    "llm_note": "LLM(0.640)은 로지스틱(0.697)·XGBoost(0.723) 대비 낮음. 표 데이터에서 경량 QLoRA LLM이 GBM을 능가하지 못함(README 한계 4 참조)."
+    "llm_auc_delta": 0.0655985991215447,
+    "llm_auc_pct_improvement": 9.41,
+    "llm_ks_delta": 0.13340842671357685,
+    "llm_meets_goal": true,
+    "llm_note": "v2 LLM(AUC 0.763 / KS 0.420)은 로지스틱(0.697)·XGBoost(0.723)를 모두 능가. AUC 절대 +0.066(>0.05 목표 달성), KS +0.133. v2 재학습(50k/r=16) 효과. (라이브 100건 실측, ±0.05 불확실.)"
   }
 }

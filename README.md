@@ -1,32 +1,37 @@
 # CSS Rating 2 — AI 신용평가시스템
 
+### ▶ **라이브 데모: <https://css-rating2-gpu-42764056014.us-central1.run.app>**
+
+[![라이브 데모](https://img.shields.io/badge/▶_라이브_데모_열기-Cloud_Run-1f6f54?style=for-the-badge)](https://css-rating2-gpu-42764056014.us-central1.run.app)
 [![CI](https://github.com/hwkim0527/CSS_rating2/actions/workflows/ci.yml/badge.svg)](https://github.com/hwkim0527/CSS_rating2/actions/workflows/ci.yml)
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/hwkim0527/CSS_rating2)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hwkim0527/CSS_rating2/blob/main/notebooks/train_llm_colab_qwen3_14b.ipynb)
 
 개인의 금융 정보를 입력하면 **12개월 내 채무불이행(부실) 확률**을 산출하는 웹앱입니다.
-Lending Club 공개 데이터(2.26M건)로 학습된 XGBoost를 즉시 사용할 수 있고,
-**Qwen3-14B sLLM** QLoRA 파인튜닝 파이프라인을 GCP에서 실행할 수 있습니다.
+Lending Club 공개 데이터(2.26M건)로 학습된 XGBoost를 즉시 쓸 수 있고,
+**Qwen3-14B sLLM**(QLoRA 파인튜닝)을 골라 추론할 수도 있습니다. 위 라이브 링크에서 바로 사용해 보세요.
 
 > 본 시스템은 연구·교육 목적의 데모입니다. 실제 신용 결정 용도가 아닙니다.
 
 ## 🚀 라이브 배포
 
-| 플랫폼 | URL | 비고 |
+| 환경 | 주소 / 방법 | 비고 |
 |---|---|---|
-| Render | [Deploy ▶](https://render.com/deploy?repo=https://github.com/hwkim0527/CSS_rating2) | 무료, 무카드, 한 번 클릭 |
-| HuggingFace Spaces | [docs/HF_SPACES](./deploy/HF_SPACES_README.md) | CPU basic 무료 |
-| Google Cloud Run | `bash deploy/deploy.sh` | 항상 켜짐, 비용 발생 |
+| **GCP Cloud Run GPU (운영)** | **<https://css-rating2-gpu-42764056014.us-central1.run.app>** | XGBoost + Qwen3-14B sLLM. NVIDIA L4 |
+| 직접 배포 (Cloud Run GPU) | `gcloud builds submit --config deploy/cloudbuild_gpu.yaml` | LLM 포함, 비용 발생 |
+| HuggingFace Spaces | [docs/HF_SPACES](./deploy/HF_SPACES_README.md) | CPU(XGBoost만) 무료 |
 | 로컬 Docker | `docker build -t css-rating2 . && docker run -p 8080:8080 css-rating2` | 검증용 |
 
-### 모델 학습 결과 (실제 측정값)
-| 지표 | 전통 모델 (LR) | AI 모델 (XGBoost) | 개선 |
+### 모델 성능 (실제 측정값)
+| 지표 | 전통 모델 (LR) | XGBoost | **Qwen3-14B sLLM (v2)** |
 |---|---|---|---|
-| **KS** *(신용평가 산업 표준)* | 0.2866 | **0.3229** | **+12.66% ✓** |
-| Average Precision | 0.3846 | 0.4151 | +7.91% |
-| AUC | 0.6972 | 0.7229 | +3.68% |
+| **AUC** *(분리 능력)* | 0.6972 | 0.7229 | **0.763 🏆** |
+| **KS** *(신용평가 산업 표준)* | 0.2866 | 0.3229 | **0.420 🏆** |
+| Average Precision | 0.3846 | 0.4151 | — |
 
-→ `/compare` 페이지에서 실시간 비교 표·그래프 확인
+> **재학습(v2)한 Qwen3-14B sLLM이 전통 모델·XGBoost를 모두 능가합니다** — AUC +0.066,
+> KS +0.097 (vs XGBoost). v2 = 50k 샘플 · LoRA r=16 (step-2500 체크포인트).
+> sLLM 수치는 라이브 100건 실측(±0.05), 나머지는 전체 테스트셋(199k) 기준.
+> → `/compare` 페이지에서 실시간 비교 표·그래프 확인.
 
 ---
 
