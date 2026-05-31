@@ -102,7 +102,10 @@
   </table>
   <p class="muted">
     🎯 KS 통계량 기준으로 XGBoost가 전통 모델 대비 <strong>+{{ "%.1f"|format(comp.xgboost_ks_pct_improvement) }}%</strong> 개선.
-    나아가 재학습(v2)한 <strong>Qwen3-14B sLLM(AUC 0.763 / KS 0.420)이 XGBoost·전통 모델을 모두 능가</strong>합니다(위 표 참조).
+    재학습(v2) <strong>Qwen3-14B sLLM(AUC 0.763)</strong>은 전통 모델(로지스틱)을 능가하고
+    <strong>XGBoost 와는 동일 100건 기준 대등</strong>(LLM 0.763 vs XGBoost 0.759)합니다.
+    표 데이터에서 sLLM 이 GBM 챔피언과 동률에 도달한 이례적 결과입니다.
+    <span class="muted">※ sLLM 은 라이브 100건 실측(±0.05), LR/XGBoost 열은 전체 테스트셋 기준.</span>
   </p>
 </div>
 

@@ -26,7 +26,7 @@
     },
     "llm_qwen3_14b": {
       "label_kr": "Qwen3-14B QLoRA (LLM, v2 r=16)",
-      "status": "measured_beats_baseline",
+      "status": "measured_on_par_xgboost",
       "auc": 0.7628,
       "ks": 0.42,
       "average_precision": null,
@@ -34,7 +34,9 @@
       "f1": null,
       "positive_rate": 0.5,
       "evaluated_samples": 100,
-      "eval_note": "v2 재학습(50k / LoRA r=16,α32 / step-2500) 어댑터를 라이브 Cloud Run GPU(L4)에서 균형표본 100건(50/50) 실측. 부실확률 분포 0.04~0.55(spread 0.51)로 변별력이 크게 향상 — 로지스틱(0.697)·XGBoost(0.723)를 모두 능가. (v1 r=8/10k 은 AUC 0.640 이었음. 표본 100건이라 ±0.05 내외 불확실, 다른 모델은 전체 테스트셋 199k 기준.)"
+      "xgboost_same_sample_auc": 0.7592,
+      "xgboost_same_sample_ks": 0.44,
+      "eval_note": "v2 재학습(50k / LoRA r=16,α32 / step-2500 체크포인트) 어댑터를 라이브 Cloud Run GPU(L4)에서 균형표본 100건(50/50) 실측. 부실확률 분포 0.04~0.55로 변별력 대폭 향상(v1 r=8/10k 은 0.640). ⚠️ 공정 비교: 같은 100건에서 XGBoost 는 AUC 0.759/KS 0.44 → v2 LLM(0.763/0.42)과 사실상 대등(통계적 동률, CI 겹침). 로지스틱(0.697)은 능가. 표 위 다른 모델 수치는 전체 테스트셋(199k) 기준이라 LLM 100건과 직접 비교 불가."
     }
   },
   "comparison_vs_baseline": {
@@ -49,10 +51,9 @@
     "meets_10pct_goal_by_ks": true,
     "meets_10pct_goal_by_ap": false,
     "meets_5pct_absolute_auc_goal": false,
-    "llm_auc_delta": 0.0655985991215447,
-    "llm_auc_pct_improvement": 9.41,
-    "llm_ks_delta": 0.13340842671357685,
-    "llm_meets_goal": true,
-    "llm_note": "v2 LLM(AUC 0.763 / KS 0.420)은 로지스틱(0.697)·XGBoost(0.723)를 모두 능가. AUC 절대 +0.066(>0.05 목표 달성), KS +0.133. v2 재학습(50k/r=16) 효과. (라이브 100건 실측, ±0.05 불확실.)"
+    "llm_vs_logistic_auc_delta": 0.0655985991215447,
+    "llm_meets_goal_vs_logistic": true,
+    "llm_vs_xgboost_same_sample": "대등(동률): 같은 100건에서 LLM 0.763 vs XGBoost 0.759 (KS 0.42 vs 0.44).",
+    "llm_note": "v2 LLM(AUC 0.763/KS 0.420, 라이브 100건)은 로지스틱(0.697) 대비 +0.066(목표 +0.05 달성)으로 능가하나, XGBoost 와는 동일 100건 기준 대등(XGB 0.759/0.44). v1(0.640) 대비 대폭 개선. 표 데이터에서 LLM 이 GBM 챔피언과 동률에 도달한 것 자체가 이례적 성과."
   }
 }
