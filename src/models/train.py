@@ -237,15 +237,19 @@ def main() -> None:
                 "label_kr": "XGBoost (그래디언트 부스팅)",
                 **lr_metrics,  # placeholder so key order matches; overwritten below
             },
+            # 최종 Qwen3-14B sLLM(50k/r=16) 실측값 — 라이브 100건 균형표본 기준.
+            # (XGBoost/LR 은 전체 테스트셋. train.py 재실행이 이 값을 덮어쓰지 않도록 보존.)
             "llm_qwen3_14b": {
-                "label_kr": "Qwen3-14B QLoRA (LLM, 학습 대기)",
-                "status": "pending_training",
-                "auc": None,
-                "ks": None,
+                "label_kr": "Qwen3-14B QLoRA (최종)",
+                "status": "final",
+                "auc": 0.7628,
+                "ks": 0.42,
                 "average_precision": None,
                 "accuracy": None,
                 "f1": None,
-                "positive_rate": None,
+                "positive_rate": 0.5,
+                "evaluated_samples": 100,
+                "xgboost_same_sample_auc": 0.7592,
             },
         },
         "comparison_vs_baseline": {

@@ -19,15 +19,16 @@ llm:
   # transformers>=4.51.0 필요.
   base_model: Qwen/Qwen3-14B
   adapter_dir: artifacts/qwen3_lora
-  lora_r: 8
-  lora_alpha: 16
+  # 최종 모델: Qwen3-14B QLoRA, 50k 샘플 / r=16 / α32 (라이브 AUC 0.763, XGBoost 와 대등).
+  lora_r: 16
+  lora_alpha: 32
   lora_dropout: 0.05
   # T4(16GB) 안전값. L4/A100 에서는 노트북이 batch 2~4 로 상향.
   per_device_train_batch_size: 1
   gradient_accumulation_steps: 8
   effective_batch: 8
   learning_rate: 2.0e-4
-  num_epochs: 1
+  num_epochs: 3
   max_seq_length: 512
   quantization: nf4
   compute_dtype: bfloat16   # T4 는 코드에서 fp16 으로 자동 폴백

@@ -157,7 +157,8 @@ gcloud builds submit --config deploy/cloudbuild_gpu.yaml \
   그 config(신규 필드 포함)를 파싱 가능함을 실측 확인.
 - ✅ **score_with_llm 수학 경로** — 모델을 mock 해 softmax(`[neg,pos]`)→P(부실)
   단위 테스트 통과(부실/정상 logit 우세 시 각각 →1/→0, 동률 시 0.5).
-- ⚠️ **실제 Qwen3-14B 4bit forward pass 는 여전히 미검증** — VRAM ≥10GB GPU 필요
-  (로컬은 RTX 3050 4GB 라 불가). Colab 또는 GCP GPU 에서 1회 엔드투엔드 실행으로
-  최종 검증 필요(`scripts/verify_llm_local.py` 가 그 직전까지의 모든 전제를 통과시킴).
-  Qwen3 `<think>` 억제 동작도 이때 함께 확인.
+- ✅ **실제 4bit forward pass — 라이브 검증 완료(최종 모델 확정).** GCP Cloud Run
+  GPU(L4)에서 `/api/score_llm` 200 OK, 8/8 샤드 4bit 로딩, 워밍 후 ~0.8s/건.
+  **최종 모델**: Qwen3-14B QLoRA, 50k / r=16,α32. 라이브 균형표본 100건 실측
+  **AUC 0.763 / KS 0.420** — 로지스틱(0.697) 능가, XGBoost(동일 100건 0.759)와 대등.
+  저위험 신청자 → 부실확률 0.06(등급 A). 이 모델을 운영 시스템의 채점 모델로 확정.
